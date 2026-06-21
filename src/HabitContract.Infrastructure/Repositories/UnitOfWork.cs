@@ -19,6 +19,9 @@ public class UnitOfWork : IUnitOfWork
     private IHabitTemplateCategoryRepository? _habitTemplateCategories;
     private IHabitTemplateRepository? _habitTemplates;
     private IHabitTemplateVersionRepository? _habitTemplateVersions;
+    private IContractReminderSettingRepository? _contractReminderSettings;
+    private IReminderRecordRepository? _reminderRecords;
+    private IReminderTemplateRepository? _reminderTemplates;
 
     public UnitOfWork(HabitContractDbContext context)
     {
@@ -33,6 +36,9 @@ public class UnitOfWork : IUnitOfWork
     public IHabitTemplateCategoryRepository HabitTemplateCategories => _habitTemplateCategories ??= new HabitTemplateCategoryRepository(_context);
     public IHabitTemplateRepository HabitTemplates => _habitTemplates ??= new HabitTemplateRepository(_context);
     public IHabitTemplateVersionRepository HabitTemplateVersions => _habitTemplateVersions ??= new HabitTemplateVersionRepository(_context);
+    public IContractReminderSettingRepository ContractReminderSettings => _contractReminderSettings ??= new ContractReminderSettingRepository(_context);
+    public IReminderRecordRepository ReminderRecords => _reminderRecords ??= new ReminderRecordRepository(_context);
+    public IReminderTemplateRepository ReminderTemplates => _reminderTemplates ??= new ReminderTemplateRepository(_context);
 
     public async Task<int> SaveChangesAsync()
     {

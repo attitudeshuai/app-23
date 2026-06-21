@@ -116,5 +116,32 @@ public class MappingProfile : Profile
 
         // 模板版本映射
         CreateMap<HabitTemplateVersion, TemplateVersionDto>();
+
+        // 提醒设置映射
+        CreateMap<ContractReminderSetting, ReminderSettingDto>()
+            .ForMember(dest => dest.ContractName, opt => opt.Ignore())
+            .ForMember(dest => dest.Username, opt => opt.Ignore());
+
+        CreateMap<ReminderSettingCreateDto, ContractReminderSetting>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.UserId, opt => opt.Ignore())
+            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.Contract, opt => opt.Ignore())
+            .ForMember(dest => dest.User, opt => opt.Ignore())
+            .ForMember(dest => dest.ReminderRecords, opt => opt.Ignore());
+
+        // 提醒记录映射
+        CreateMap<ReminderRecord, ReminderRecordDto>()
+            .ForMember(dest => dest.ContractName, opt => opt.Ignore())
+            .ForMember(dest => dest.Username, opt => opt.Ignore());
+
+        // 提醒模板映射
+        CreateMap<ReminderTemplate, ReminderTemplateDto>();
+
+        CreateMap<ReminderTemplateCreateDto, ReminderTemplate>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
     }
 }

@@ -19,6 +19,9 @@ public class HabitContractDbContext : DbContext
     public DbSet<HabitTemplateCategory> HabitTemplateCategories { get; set; }
     public DbSet<HabitTemplate> HabitTemplates { get; set; }
     public DbSet<HabitTemplateVersion> HabitTemplateVersions { get; set; }
+    public DbSet<ContractReminderSetting> ContractReminderSettings { get; set; }
+    public DbSet<ReminderRecord> ReminderRecords { get; set; }
+    public DbSet<ReminderTemplate> ReminderTemplates { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -157,6 +160,57 @@ public class HabitContractDbContext : DbContext
             entity.Property(v => v.ChangeLog).HasMaxLength(1000);
             entity.HasIndex(v => v.TemplateId);
             entity.HasIndex(v => v.Version);
+        });
+
+        modelBuilder.Entity<ContractReminderSetting>(entity =>
+        {
+            entity.HasOne(s => s.Contract)
+                .WithMany()
+                .HasForeignKey(s => s.ContractId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(s => s.User)
+                .WithMany()
+                .HasForeignKey(s => s.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(s => new { s.ContractId, s.UserId }).IsUnique();
+            entity.HasIndex(s => s.UserId);
+            entity.HasIndex(s => s.IsEnabled);
+        });
+
+        modelBuilder.Entity<ReminderRecord>(entity =>
+        {
+            entity.HasOne(r => r.Contract)
+                .WithMany()
+                .HasForeignKey(r => r.ContractId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(r => r.Setting)
+                .WithMany(s => s.ReminderRecords)
+                .HasForeignKey(r => r.SettingId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.Property(r => r.Title).IsRequired().HasMaxLength(200);
+            entity.Property(r => r.Content).IsRequired().HasMaxLength(1000);
+            entity.Property(r => r.ErrorMessage).HasMaxLength(500);
+            entity.Property(r => r.ContractInfo).HasMaxLength(500);
+            entity.HasIndex(r => r.ContractId);
+            entity.HasIndex(r => r.UserId);
+            entity.HasIndex(r => r.ReminderDate);
+            entity.HasIndex(r => r.Status);
+            entity.HasIndex(r => new { r.ContractId, r.UserId, r.ReminderDate });
+        });
+
+        modelBuilder.Entity<ReminderTemplate>(entity =>
+        {
+            entity.Property(t => t.Name).IsRequired().HasMaxLength(100);
+            entity.Property(t => t.TitleTemplate).IsRequired().HasMaxLength(200);
+            entity.Property(t => t.ContentTemplate).IsRequired().HasMaxLength(1000);
+            entity.Property(t => t.Description).HasMaxLength(500);
+            entity.HasIndex(t => t.Type);
+            entity.HasIndex(t => t.IsActive);
+            entity.HasIndex(t => t.IsDefault);
         });
     }
 }

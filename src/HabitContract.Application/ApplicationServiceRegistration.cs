@@ -20,6 +20,10 @@ public static class ApplicationServiceRegistration
         services.AddScoped<IContractViolationService, ContractViolationService>();
         services.AddScoped<IStatsService, StatsService>();
         services.AddScoped<ITemplateService, TemplateService>();
+        services.AddScoped<IReminderService, ReminderService>();
+        services.AddScoped<IReminderTemplateService, ReminderTemplateService>();
+
+        services.AddHostedService<ReminderBackgroundService>();
 
         services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 

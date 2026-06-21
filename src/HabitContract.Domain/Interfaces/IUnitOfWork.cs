@@ -12,5 +12,8 @@ public interface IUnitOfWork : IDisposable
     IHabitTemplateCategoryRepository HabitTemplateCategories { get; }
     IHabitTemplateRepository HabitTemplates { get; }
     IHabitTemplateVersionRepository HabitTemplateVersions { get; }
+    IContractReminderSettingRepository ContractReminderSettings { get; }
+    IReminderRecordRepository ReminderRecords { get; }
+    IReminderTemplateRepository ReminderTemplates { get; }
     Task<int> SaveChangesAsync();
 }

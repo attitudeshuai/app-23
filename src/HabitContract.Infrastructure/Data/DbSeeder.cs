@@ -44,6 +44,11 @@ public static class DbSeeder
         {
             await SeedHabitTemplatesAsync(context);
         }
+
+        if (!await context.ReminderTemplates.AnyAsync())
+        {
+            await SeedReminderTemplatesAsync(context);
+        }
     }
 
     private static async Task SeedUsersAsync(HabitContractDbContext context)
@@ -664,6 +669,49 @@ public static class DbSeeder
         };
 
         await context.HabitTemplates.AddRangeAsync(templates);
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedReminderTemplatesAsync(HabitContractDbContext context)
+    {
+        var templates = new List<ReminderTemplate>
+        {
+            new ReminderTemplate
+            {
+                Type = ReminderTemplateType.DefaultCheckInReminder,
+                Name = "默认打卡提醒",
+                TitleTemplate = "提醒：今日「{HabitName}」还未打卡",
+                ContentTemplate = "你好 {UserName}，今天是 {Date}，「{HabitName}」还未打卡，请及时完成打卡任务。\n\n契约约定：{Penalty}",
+                Description = "每日打卡提醒的默认模板",
+                IsActive = true,
+                IsDefault = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-60)
+            },
+            new ReminderTemplate
+            {
+                Type = ReminderTemplateType.DailySummary,
+                Name = "每日总结",
+                TitleTemplate = "{Date} 打卡总结",
+                ContentTemplate = "你好 {UserName}，以下是您今日的打卡情况：\n\n- 已完成打卡：{CompletedCount} 个\n- 待完成打卡：{PendingCount} 个\n\n继续保持良好的习惯！",
+                Description = "每日打卡总结通知模板",
+                IsActive = true,
+                IsDefault = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-60)
+            },
+            new ReminderTemplate
+            {
+                Type = ReminderTemplateType.ViolationWarning,
+                Name = "违约警告",
+                TitleTemplate = "警告：「{HabitName}」可能违约",
+                ContentTemplate = "你好 {UserName}，您的契约「{HabitName}」已连续 {Days} 天未打卡，可能触发违约条款。\n\n契约约定：{Penalty}",
+                Description = "违约警告通知模板",
+                IsActive = true,
+                IsDefault = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-60)
+            }
+        };
+
+        await context.ReminderTemplates.AddRangeAsync(templates);
         await context.SaveChangesAsync();
     }
 }

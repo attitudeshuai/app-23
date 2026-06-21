@@ -46,7 +46,12 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<IHabitTemplateCategoryRepository, HabitTemplateCategoryRepository>();
         services.AddScoped<IHabitTemplateRepository, HabitTemplateRepository>();
         services.AddScoped<IHabitTemplateVersionRepository, HabitTemplateVersionRepository>();
+        services.AddScoped<IContractReminderSettingRepository, ContractReminderSettingRepository>();
+        services.AddScoped<IReminderRecordRepository, ReminderRecordRepository>();
+        services.AddScoped<IReminderTemplateRepository, ReminderTemplateRepository>();
         services.AddScoped<IJwtService, JwtService>();
+
+        services.AddScoped<INotificationSender, InAppNotificationSender>();
 
         return services;
     }
