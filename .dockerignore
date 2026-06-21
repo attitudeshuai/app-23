@@ -1,0 +1,9 @@
+bin/
+obj/
+.git/
+.vs/
+*.user
+*.suo
+README.md
+docs/
+tests/
