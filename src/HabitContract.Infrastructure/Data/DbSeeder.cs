@@ -34,6 +34,16 @@ public static class DbSeeder
         {
             await SeedContractViolationsAsync(context);
         }
+
+        if (!await context.HabitTemplateCategories.AnyAsync())
+        {
+            await SeedTemplateCategoriesAsync(context);
+        }
+
+        if (!await context.HabitTemplates.AnyAsync())
+        {
+            await SeedHabitTemplatesAsync(context);
+        }
     }
 
     private static async Task SeedUsersAsync(HabitContractDbContext context)
@@ -409,6 +419,251 @@ public static class DbSeeder
         };
 
         await context.ContractViolations.AddRangeAsync(violations);
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedTemplateCategoriesAsync(HabitContractDbContext context)
+    {
+        var categories = new List<HabitTemplateCategory>
+        {
+            new HabitTemplateCategory
+            {
+                Name = "运动健身",
+                Description = "各类运动健身习惯养成",
+                Icon = "🏃",
+                SortOrder = 1,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-60)
+            },
+            new HabitTemplateCategory
+            {
+                Name = "学习提升",
+                Description = "阅读、学习等自我提升习惯",
+                Icon = "📚",
+                SortOrder = 2,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-60)
+            },
+            new HabitTemplateCategory
+            {
+                Name = "健康生活",
+                Description = "作息、饮食等健康生活习惯",
+                Icon = "💪",
+                SortOrder = 3,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-60)
+            },
+            new HabitTemplateCategory
+            {
+                Name = "心灵成长",
+                Description = "冥想、反思等心灵成长习惯",
+                Icon = "🧘",
+                SortOrder = 4,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-60)
+            },
+            new HabitTemplateCategory
+            {
+                Name = "戒除不良习惯",
+                Description = "戒烟、戒熬夜等戒除类习惯",
+                Icon = "🚫",
+                SortOrder = 5,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-60)
+            }
+        };
+
+        await context.HabitTemplateCategories.AddRangeAsync(categories);
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedHabitTemplatesAsync(HabitContractDbContext context)
+    {
+        var templates = new List<HabitTemplate>
+        {
+            new HabitTemplate
+            {
+                CategoryId = 1,
+                Name = "每日晨跑",
+                Description = "每天早晨跑步30分钟，增强体质",
+                Icon = "🏃‍♂️",
+                DefaultFrequency = "每天",
+                DefaultDurationDays = 30,
+                DefaultGoalDescription = "每天早晨6:30起床，跑步30分钟，距离不少于3公里",
+                DefaultSupervisorRule = "监督伙伴每日核查跑步记录，缺卡一次记为违约",
+                DefaultPenaltyDescription = "违约一次给监督伙伴发100元红包",
+                Version = "1.0.0",
+                Status = Domain.Enums.TemplateStatus.Published,
+                SortOrder = 1,
+                UsageCount = 156,
+                CompletionCount = 89,
+                CreatedAt = DateTime.UtcNow.AddDays(-50)
+            },
+            new HabitTemplate
+            {
+                CategoryId = 1,
+                Name = "每周健身3次",
+                Description = "每周去健身房3次，增肌塑形",
+                Icon = "🏋️",
+                DefaultFrequency = "每周3次",
+                DefaultDurationDays = 90,
+                DefaultGoalDescription = "每周一、三、五去健身房锻炼，每次不少于1小时",
+                DefaultSupervisorRule = "监督伙伴核查健身打卡照片，每周少一次记为违约",
+                DefaultPenaltyDescription = "少去一次发150元红包",
+                Version = "1.0.0",
+                Status = Domain.Enums.TemplateStatus.Published,
+                SortOrder = 2,
+                UsageCount = 203,
+                CompletionCount = 112,
+                CreatedAt = DateTime.UtcNow.AddDays(-48)
+            },
+            new HabitTemplate
+            {
+                CategoryId = 2,
+                Name = "每日阅读30分钟",
+                Description = "每天阅读30分钟，养成读书习惯",
+                Icon = "📖",
+                DefaultFrequency = "每天",
+                DefaultDurationDays = 30,
+                DefaultGoalDescription = "每天阅读至少30分钟，书籍类型不限",
+                DefaultSupervisorRule = "监督伙伴每日核查阅读记录和心得",
+                DefaultPenaltyDescription = "少读一天罚款50元充公",
+                Version = "1.0.0",
+                Status = Domain.Enums.TemplateStatus.Published,
+                SortOrder = 1,
+                UsageCount = 312,
+                CompletionCount = 198,
+                CreatedAt = DateTime.UtcNow.AddDays(-45)
+            },
+            new HabitTemplate
+            {
+                CategoryId = 2,
+                Name = "每周读完一本书",
+                Description = "每周读完一本好书，提升认知",
+                Icon = "📕",
+                DefaultFrequency = "每周1本",
+                DefaultDurationDays = 90,
+                DefaultGoalDescription = "每周读完一本书，周末分享读书笔记",
+                DefaultSupervisorRule = "周日晚提交读书笔记，未完成记违约一次",
+                DefaultPenaltyDescription = "未完成一周发200元红包",
+                Version = "1.0.0",
+                Status = Domain.Enums.TemplateStatus.Published,
+                SortOrder = 2,
+                UsageCount = 178,
+                CompletionCount = 95,
+                CreatedAt = DateTime.UtcNow.AddDays(-42)
+            },
+            new HabitTemplate
+            {
+                CategoryId = 3,
+                Name = "早起打卡",
+                Description = "每天早起打卡，养成规律作息",
+                Icon = "🌅",
+                DefaultFrequency = "每天",
+                DefaultDurationDays = 21,
+                DefaultGoalDescription = "每天早上7点前起床打卡",
+                DefaultSupervisorRule = "监督伙伴每日核查早起打卡时间",
+                DefaultPenaltyDescription = "起不来就给大家买早餐",
+                Version = "1.0.0",
+                Status = Domain.Enums.TemplateStatus.Published,
+                SortOrder = 1,
+                UsageCount = 245,
+                CompletionCount = 156,
+                CreatedAt = DateTime.UtcNow.AddDays(-40)
+            },
+            new HabitTemplate
+            {
+                CategoryId = 3,
+                Name = "每天喝8杯水",
+                Description = "保持每天充足饮水，促进健康",
+                Icon = "💧",
+                DefaultFrequency = "每天",
+                DefaultDurationDays = 30,
+                DefaultGoalDescription = "每天喝8杯水，每杯约250ml",
+                DefaultSupervisorRule = "监督伙伴每日核查饮水打卡记录",
+                DefaultPenaltyDescription = "少喝一杯罚10元",
+                Version = "1.0.0",
+                Status = Domain.Enums.TemplateStatus.Published,
+                SortOrder = 2,
+                UsageCount = 134,
+                CompletionCount = 87,
+                CreatedAt = DateTime.UtcNow.AddDays(-38)
+            },
+            new HabitTemplate
+            {
+                CategoryId = 4,
+                Name = "每日冥想15分钟",
+                Description = "每天冥想15分钟，提升专注力",
+                Icon = "🧘‍♀️",
+                DefaultFrequency = "每天",
+                DefaultDurationDays = 30,
+                DefaultGoalDescription = "每天冥想15分钟，可以使用冥想APP辅助",
+                DefaultSupervisorRule = "监督伙伴每日核查冥想记录",
+                DefaultPenaltyDescription = "漏做一天发50元红包",
+                Version = "1.0.0",
+                Status = Domain.Enums.TemplateStatus.Published,
+                SortOrder = 1,
+                UsageCount = 167,
+                CompletionCount = 110,
+                CreatedAt = DateTime.UtcNow.AddDays(-35)
+            },
+            new HabitTemplate
+            {
+                CategoryId = 4,
+                Name = "每日写日记",
+                Description = "每天记录生活，反思成长",
+                Icon = "📝",
+                DefaultFrequency = "每天",
+                DefaultDurationDays = 30,
+                DefaultGoalDescription = "每天写日记，记录当天的收获和感悟",
+                DefaultSupervisorRule = "监督伙伴每周抽查2-3天的日记内容",
+                DefaultPenaltyDescription = "缺一天罚30元",
+                Version = "1.0.0",
+                Status = Domain.Enums.TemplateStatus.Published,
+                SortOrder = 2,
+                UsageCount = 98,
+                CompletionCount = 62,
+                CreatedAt = DateTime.UtcNow.AddDays(-32)
+            },
+            new HabitTemplate
+            {
+                CategoryId = 5,
+                Name = "戒烟挑战",
+                Description = "30天戒烟挑战，摆脱烟瘾",
+                Icon = "🚭",
+                DefaultFrequency = "每天",
+                DefaultDurationDays = 30,
+                DefaultGoalDescription = "30天完全不抽烟，包括电子烟",
+                DefaultSupervisorRule = "监督伙伴每日核查，发现抽烟立即记违约",
+                DefaultPenaltyDescription = "抽烟一次罚款500元",
+                Version = "1.0.0",
+                Status = Domain.Enums.TemplateStatus.Published,
+                SortOrder = 1,
+                UsageCount = 89,
+                CompletionCount = 34,
+                CreatedAt = DateTime.UtcNow.AddDays(-30)
+            },
+            new HabitTemplate
+            {
+                CategoryId = 5,
+                Name = "不熬夜挑战",
+                Description = "21天不熬夜，早睡早起",
+                Icon = "😴",
+                DefaultFrequency = "每天",
+                DefaultDurationDays = 21,
+                DefaultGoalDescription = "每天晚上11点前入睡，早上7点前起床",
+                DefaultSupervisorRule = "监督伙伴核查入睡和起床时间",
+                DefaultPenaltyDescription = "熬夜一次发200元红包",
+                Version = "1.0.0",
+                Status = Domain.Enums.TemplateStatus.Published,
+                SortOrder = 2,
+                UsageCount = 145,
+                CompletionCount = 78,
+                CreatedAt = DateTime.UtcNow.AddDays(-28)
+            }
+        };
+
+        await context.HabitTemplates.AddRangeAsync(templates);
         await context.SaveChangesAsync();
     }
 }

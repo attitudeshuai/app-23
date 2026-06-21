@@ -16,6 +16,9 @@ public class HabitContractDbContext : DbContext
     public DbSet<ContractPartner> ContractPartners { get; set; }
     public DbSet<CheckIn> CheckIns { get; set; }
     public DbSet<ContractViolation> ContractViolations { get; set; }
+    public DbSet<HabitTemplateCategory> HabitTemplateCategories { get; set; }
+    public DbSet<HabitTemplate> HabitTemplates { get; set; }
+    public DbSet<HabitTemplateVersion> HabitTemplateVersions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -39,11 +42,16 @@ public class HabitContractDbContext : DbContext
                 .WithMany(u => u.Contracts)
                 .HasForeignKey(c => c.OwnerId)
                 .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(c => c.Template)
+                .WithMany()
+                .HasForeignKey(c => c.TemplateId)
+                .OnDelete(DeleteBehavior.SetNull);
             entity.Property(c => c.HabitName).IsRequired().HasMaxLength(100);
             entity.Property(c => c.Frequency).IsRequired().HasMaxLength(50);
             entity.Property(c => c.PenaltyDescription).HasMaxLength(500);
             entity.Property(c => c.Status).HasDefaultValue(ContractStatus.Active);
             entity.HasIndex(c => c.OwnerId);
+            entity.HasIndex(c => c.TemplateId);
             entity.HasIndex(c => c.Status);
             entity.HasIndex(c => c.StartDate);
             entity.HasIndex(c => c.EndDate);
@@ -94,6 +102,61 @@ public class HabitContractDbContext : DbContext
             entity.Property(cv => cv.IsConfirmed).HasDefaultValue(false);
             entity.HasIndex(cv => cv.ContractId);
             entity.HasIndex(cv => cv.ViolationDate);
+        });
+
+        // 习惯模板分类配置
+        modelBuilder.Entity<HabitTemplateCategory>(entity =>
+        {
+            entity.Property(c => c.Name).IsRequired().HasMaxLength(50);
+            entity.Property(c => c.Description).HasMaxLength(200);
+            entity.Property(c => c.Icon).HasMaxLength(500);
+            entity.Property(c => c.IsActive).HasDefaultValue(true);
+            entity.Property(c => c.SortOrder).HasDefaultValue(0);
+            entity.HasIndex(c => c.IsActive);
+            entity.HasIndex(c => c.SortOrder);
+        });
+
+        // 习惯模板配置
+        modelBuilder.Entity<HabitTemplate>(entity =>
+        {
+            entity.HasOne(t => t.Category)
+                .WithMany(c => c.Templates)
+                .HasForeignKey(t => t.CategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.Property(t => t.Name).IsRequired().HasMaxLength(100);
+            entity.Property(t => t.Description).HasMaxLength(500);
+            entity.Property(t => t.Icon).HasMaxLength(500);
+            entity.Property(t => t.DefaultFrequency).IsRequired().HasMaxLength(50);
+            entity.Property(t => t.DefaultGoalDescription).IsRequired().HasMaxLength(500);
+            entity.Property(t => t.DefaultSupervisorRule).IsRequired().HasMaxLength(500);
+            entity.Property(t => t.DefaultPenaltyDescription).HasMaxLength(500);
+            entity.Property(t => t.Version).IsRequired().HasMaxLength(50);
+            entity.Property(t => t.Status).HasDefaultValue(TemplateStatus.Draft);
+            entity.Property(t => t.SortOrder).HasDefaultValue(0);
+            entity.Property(t => t.UsageCount).HasDefaultValue(0);
+            entity.Property(t => t.CompletionCount).HasDefaultValue(0);
+            entity.HasIndex(t => t.CategoryId);
+            entity.HasIndex(t => t.Status);
+            entity.HasIndex(t => t.SortOrder);
+        });
+
+        // 模板版本历史配置
+        modelBuilder.Entity<HabitTemplateVersion>(entity =>
+        {
+            entity.HasOne(v => v.Template)
+                .WithMany()
+                .HasForeignKey(v => v.TemplateId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(v => v.Version).IsRequired().HasMaxLength(50);
+            entity.Property(v => v.Name).IsRequired().HasMaxLength(100);
+            entity.Property(v => v.Description).HasMaxLength(500);
+            entity.Property(v => v.DefaultFrequency).IsRequired().HasMaxLength(50);
+            entity.Property(v => v.DefaultGoalDescription).IsRequired().HasMaxLength(500);
+            entity.Property(v => v.DefaultSupervisorRule).IsRequired().HasMaxLength(500);
+            entity.Property(v => v.DefaultPenaltyDescription).HasMaxLength(500);
+            entity.Property(v => v.ChangeLog).HasMaxLength(1000);
+            entity.HasIndex(v => v.TemplateId);
+            entity.HasIndex(v => v.Version);
         });
     }
 }

@@ -19,6 +19,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<ICheckInService, CheckInService>();
         services.AddScoped<IContractViolationService, ContractViolationService>();
         services.AddScoped<IStatsService, StatsService>();
+        services.AddScoped<ITemplateService, TemplateService>();
 
         services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 

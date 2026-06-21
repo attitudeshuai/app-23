@@ -129,9 +129,22 @@ public class ContractService : IContractService
             throw new BusinessException(errorMsg);
         }
 
+        var previousStatus = contract.Status;
         contract.Status = dto.Status;
         contract.UpdatedAt = DateTime.UtcNow;
         await _unitOfWork.Contracts.UpdateAsync(contract);
+
+        if (dto.Status == ContractStatus.Completed && previousStatus != ContractStatus.Completed && contract.TemplateId.HasValue)
+        {
+            var template = await _unitOfWork.HabitTemplates.GetByIdAsync(contract.TemplateId.Value);
+            if (template != null)
+            {
+                template.CompletionCount++;
+                template.UpdatedAt = DateTime.UtcNow;
+                await _unitOfWork.HabitTemplates.UpdateAsync(template);
+            }
+        }
+
         await _unitOfWork.SaveChangesAsync();
 
         return await MapToContractDto(contract);

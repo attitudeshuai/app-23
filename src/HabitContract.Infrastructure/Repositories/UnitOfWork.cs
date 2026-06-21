@@ -16,6 +16,9 @@ public class UnitOfWork : IUnitOfWork
     private IRepository<ContractPartner, int>? _contractPartners;
     private IRepository<CheckIn, int>? _checkIns;
     private IRepository<ContractViolation, int>? _contractViolations;
+    private IHabitTemplateCategoryRepository? _habitTemplateCategories;
+    private IHabitTemplateRepository? _habitTemplates;
+    private IHabitTemplateVersionRepository? _habitTemplateVersions;
 
     public UnitOfWork(HabitContractDbContext context)
     {
@@ -27,6 +30,9 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<ContractPartner, int> ContractPartners => _contractPartners ??= new ContractPartnerRepository(_context);
     public IRepository<CheckIn, int> CheckIns => _checkIns ??= new CheckInRepository(_context);
     public IRepository<ContractViolation, int> ContractViolations => _contractViolations ??= new ContractViolationRepository(_context);
+    public IHabitTemplateCategoryRepository HabitTemplateCategories => _habitTemplateCategories ??= new HabitTemplateCategoryRepository(_context);
+    public IHabitTemplateRepository HabitTemplates => _habitTemplates ??= new HabitTemplateRepository(_context);
+    public IHabitTemplateVersionRepository HabitTemplateVersions => _habitTemplateVersions ??= new HabitTemplateVersionRepository(_context);
 
     public async Task<int> SaveChangesAsync()
     {

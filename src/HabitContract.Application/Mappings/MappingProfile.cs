@@ -83,5 +83,38 @@ public class MappingProfile : Profile
 
         // 分页结果映射
         CreateMap(typeof(PagedResult<>), typeof(PagedResultDto<>));
+
+        // 模板分类映射
+        CreateMap<HabitTemplateCategory, TemplateCategoryDto>()
+            .ForMember(dest => dest.TemplateCount, opt => opt.Ignore());
+
+        CreateMap<TemplateCategoryCreateDto, HabitTemplateCategory>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.IsActive, opt => opt.Ignore())
+            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.Templates, opt => opt.Ignore());
+
+        // 模板映射
+        CreateMap<HabitTemplate, TemplateDto>()
+            .ForMember(dest => dest.CategoryName, opt => opt.Ignore())
+            .ForMember(dest => dest.CompletionRate, opt => opt.Ignore());
+
+        CreateMap<HabitTemplate, TemplateDetailDto>()
+            .ForMember(dest => dest.CategoryName, opt => opt.Ignore())
+            .ForMember(dest => dest.CompletionRate, opt => opt.Ignore());
+
+        CreateMap<TemplateCreateDto, HabitTemplate>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.Version, opt => opt.Ignore())
+            .ForMember(dest => dest.Status, opt => opt.Ignore())
+            .ForMember(dest => dest.UsageCount, opt => opt.Ignore())
+            .ForMember(dest => dest.CompletionCount, opt => opt.Ignore())
+            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.Category, opt => opt.Ignore());
+
+        // 模板版本映射
+        CreateMap<HabitTemplateVersion, TemplateVersionDto>();
     }
 }

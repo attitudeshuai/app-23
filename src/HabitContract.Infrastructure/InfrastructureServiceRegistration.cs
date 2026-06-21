@@ -43,6 +43,9 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<IContractPartnerRepository, ContractPartnerRepository>();
         services.AddScoped<ICheckInRepository, CheckInRepository>();
         services.AddScoped<IContractViolationRepository, ContractViolationRepository>();
+        services.AddScoped<IHabitTemplateCategoryRepository, HabitTemplateCategoryRepository>();
+        services.AddScoped<IHabitTemplateRepository, HabitTemplateRepository>();
+        services.AddScoped<IHabitTemplateVersionRepository, HabitTemplateVersionRepository>();
         services.AddScoped<IJwtService, JwtService>();
 
         return services;
