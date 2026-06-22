@@ -12,11 +12,22 @@ public class ContractService : IContractService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
+    private readonly IFrequencyRuleCache _frequencyCache;
+    private readonly IFrequencyParser _frequencyParser;
+    private readonly ICheckInService _checkInService;
 
-    public ContractService(IUnitOfWork unitOfWork, IMapper mapper)
+    public ContractService(
+        IUnitOfWork unitOfWork,
+        IMapper mapper,
+        IFrequencyRuleCache frequencyCache,
+        IFrequencyParser frequencyParser,
+        ICheckInService checkInService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
+        _frequencyCache = frequencyCache;
+        _frequencyParser = frequencyParser;
+        _checkInService = checkInService;
     }
 
     public async Task<PagedResultDto<ContractListDto>> GetContractsAsync(QueryParameters parameters)
@@ -38,7 +49,6 @@ public class ContractService : IContractService
 
     public async Task<ContractDto> CreateContractAsync(int userId, ContractCreateDto dto)
     {
-        // 验证结束日期必须大于开始日期
         if (dto.EndDate <= dto.StartDate)
         {
             throw new BusinessException("结束日期必须大于开始日期");
@@ -51,6 +61,9 @@ public class ContractService : IContractService
         var created = await _unitOfWork.Contracts.AddAsync(contract);
         await _unitOfWork.SaveChangesAsync();
 
+        var frequencyRule = _frequencyParser.Parse(contract.Frequency);
+        await _frequencyCache.SetAsync(contract.Id, frequencyRule);
+
         return await MapToContractDto(created);
     }
 
@@ -62,17 +75,23 @@ public class ContractService : IContractService
             throw new BusinessException("契约不存在", 404);
         }
 
-        // 只有契约拥有者可以修改
         if (contract.OwnerId != userId)
         {
             throw new BusinessException("无权限修改此契约", 403);
         }
 
+        var frequencyChanged = false;
+        FrequencyRule? newRule = null;
+
         if (!string.IsNullOrEmpty(dto.HabitName))
             contract.HabitName = dto.HabitName;
 
-        if (!string.IsNullOrEmpty(dto.Frequency))
+        if (!string.IsNullOrEmpty(dto.Frequency) && dto.Frequency != contract.Frequency)
+        {
             contract.Frequency = dto.Frequency;
+            frequencyChanged = true;
+            newRule = _frequencyParser.Parse(dto.Frequency);
+        }
 
         if (dto.StartDate.HasValue)
             contract.StartDate = dto.StartDate.Value;
@@ -87,6 +106,13 @@ public class ContractService : IContractService
         await _unitOfWork.Contracts.UpdateAsync(contract);
         await _unitOfWork.SaveChangesAsync();
 
+        if (frequencyChanged && newRule != null)
+        {
+            await _frequencyCache.RemoveAsync(contract.Id);
+            await _frequencyCache.SetAsync(contract.Id, newRule);
+            await _checkInService.ReValidateRecentCheckInsAsync(contract.Id, newRule);
+        }
+
         return await MapToContractDto(contract);
     }
 
@@ -98,12 +124,12 @@ public class ContractService : IContractService
             throw new BusinessException("契约不存在", 404);
         }
 
-        // 只有契约拥有者可以删除
         if (contract.OwnerId != userId)
         {
             throw new BusinessException("无权限删除此契约", 403);
         }
 
+        await _frequencyCache.RemoveAsync(contract.Id);
         await _unitOfWork.Contracts.DeleteAsync(contract);
         await _unitOfWork.SaveChangesAsync();
     }
@@ -116,13 +142,11 @@ public class ContractService : IContractService
             throw new BusinessException("契约不存在", 404);
         }
 
-        // 只有契约拥有者可以修改状态
         if (contract.OwnerId != userId)
         {
             throw new BusinessException("无权限修改此契约状态", 403);
         }
 
-        // 状态转换验证：只允许合法的状态流转
         var (isValid, errorMsg) = ValidateStatusTransition(contract.Status, dto.Status);
         if (!isValid)
         {
@@ -145,6 +169,11 @@ public class ContractService : IContractService
             }
         }
 
+        if (dto.Status != ContractStatus.Active)
+        {
+            await _frequencyCache.RemoveAsync(contract.Id);
+        }
+
         await _unitOfWork.SaveChangesAsync();
 
         return await MapToContractDto(contract);
@@ -152,11 +181,9 @@ public class ContractService : IContractService
 
     public async Task<PagedResultDto<ContractListDto>> GetMyContractsAsync(int userId, QueryParameters parameters)
     {
-        // 获取用户作为拥有者的契约
         var allContracts = await _unitOfWork.Contracts.GetAllAsync();
         var ownerContractIds = allContracts.Where(c => c.OwnerId == userId).Select(c => c.Id).ToList();
 
-        // 获取用户作为伙伴的契约
         var allPartners = await _unitOfWork.ContractPartners.GetAllAsync();
         var partnerContractIds = allPartners
             .Where(p => p.PartnerId == userId && p.Status == PartnerStatus.Accepted)
@@ -166,7 +193,6 @@ public class ContractService : IContractService
         var myContractIds = ownerContractIds.Union(partnerContractIds).Distinct().ToList();
         var myContracts = allContracts.Where(c => myContractIds.Contains(c.Id)).ToList();
 
-        // 手动分页
         var totalCount = myContracts.Count;
         var totalPages = (int)Math.Ceiling((double)totalCount / parameters.PageSize);
         var pagedItems = myContracts
@@ -193,10 +219,6 @@ public class ContractService : IContractService
         };
     }
 
-    /// <summary>
-    /// 验证契约状态转换是否合法
-    /// 允许：Active->Paused, Paused->Active, Active->Completed, Active->Failed
-    /// </summary>
     private static (bool IsValid, string ErrorMsg) ValidateStatusTransition(ContractStatus current, ContractStatus target)
     {
         return (current, target) switch
@@ -209,35 +231,25 @@ public class ContractService : IContractService
         };
     }
 
-    /// <summary>
-    /// 将Contract实体映射为ContractDto（包含计算字段）
-    /// </summary>
     private async Task<ContractDto> MapToContractDto(Contract contract)
     {
         var dto = _mapper.Map<ContractDto>(contract);
 
-        // 获取拥有者名称
         var owner = await _unitOfWork.Users.GetByIdAsync(contract.OwnerId);
         dto.OwnerName = owner?.Username;
 
-        // 计算伙伴数量
         var allPartners = await _unitOfWork.ContractPartners.GetAllAsync();
         dto.PartnerCount = allPartners.Count(p => p.ContractId == contract.Id);
 
-        // 计算打卡数量
         var allCheckIns = await _unitOfWork.CheckIns.GetAllAsync();
         dto.CheckInCount = allCheckIns.Count(c => c.ContractId == contract.Id);
 
-        // 计算违约数量
         var allViolations = await _unitOfWork.ContractViolations.GetAllAsync();
         dto.ViolationCount = allViolations.Count(v => v.ContractId == contract.Id);
 
         return dto;
     }
 
-    /// <summary>
-    /// 将Contract实体映射为ContractListDto（包含拥有者名称）
-    /// </summary>
     private async Task<ContractListDto> MapToContractListDto(Contract contract)
     {
         var dto = _mapper.Map<ContractListDto>(contract);
@@ -248,9 +260,6 @@ public class ContractService : IContractService
         return dto;
     }
 
-    /// <summary>
-    /// 将分页结果映射为ContractListDto分页
-    /// </summary>
     private async Task<PagedResultDto<ContractListDto>> MapToPagedContractListDto(PagedResult<Contract> pagedResult)
     {
         var items = new List<ContractListDto>();

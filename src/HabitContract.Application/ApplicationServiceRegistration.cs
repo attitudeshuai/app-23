@@ -22,6 +22,8 @@ public static class ApplicationServiceRegistration
         services.AddScoped<ITemplateService, TemplateService>();
         services.AddScoped<IReminderService, ReminderService>();
         services.AddScoped<IReminderTemplateService, ReminderTemplateService>();
+        services.AddScoped<IFrequencyParser, FrequencyParser>();
+        services.AddScoped<IFrequencyRuleCache, FrequencyRuleCache>();
 
         services.AddHostedService<ReminderBackgroundService>();
 
