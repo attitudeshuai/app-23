@@ -68,20 +68,6 @@ public class CheckInService : ICheckInService
             throw new BusinessException(validationResult.ErrorMessage);
         }
 
-        var todayStart = DateTime.UtcNow.Date;
-        var todayEnd = todayStart.AddDays(1);
-        var allCheckIns = await _unitOfWork.CheckIns.GetAllAsync();
-        var alreadyCheckedIn = allCheckIns.Any(ci =>
-            ci.ContractId == dto.ContractId &&
-            ci.UserId == userId &&
-            ci.CheckInDate >= todayStart &&
-            ci.CheckInDate < todayEnd);
-
-        if (alreadyCheckedIn)
-        {
-            throw new BusinessException("今天已经打过卡了");
-        }
-
         var checkIn = _mapper.Map<CheckIn>(dto);
         checkIn.UserId = userId;
         checkIn.CheckInDate = checkInDate;
