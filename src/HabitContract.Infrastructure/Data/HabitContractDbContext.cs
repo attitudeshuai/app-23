@@ -140,10 +140,19 @@ public class HabitContractDbContext : DbContext
                 .WithMany(c => c.Violations)
                 .HasForeignKey(cv => cv.ContractId)
                 .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(cv => cv.User)
+                .WithMany()
+                .HasForeignKey(cv => cv.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.Property(cv => cv.ViolationType).HasDefaultValue(ViolationType.Other);
+            entity.Property(cv => cv.IsSevere).HasDefaultValue(false);
             entity.Property(cv => cv.Reason).IsRequired().HasMaxLength(500);
             entity.Property(cv => cv.IsConfirmed).HasDefaultValue(false);
             entity.HasIndex(cv => cv.ContractId);
+            entity.HasIndex(cv => cv.UserId);
             entity.HasIndex(cv => cv.ViolationDate);
+            entity.HasIndex(cv => cv.ViolationType);
+            entity.HasIndex(cv => cv.IsSevere);
         });
 
         // 习惯模板分类配置

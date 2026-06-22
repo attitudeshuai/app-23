@@ -422,7 +422,72 @@ public class MakeUpRequestService : IMakeUpRequestService
             dto.ReviewerName = reviewer?.Username;
         }
 
+        dto.ReviewContext = await BuildReviewContextAsync(request.ContractId, request.UserId, request.CheckInDate);
+
         return dto;
+    }
+
+    private async Task<ReviewContextDto> BuildReviewContextAsync(int contractId, int userId, DateTime checkInDate)
+    {
+        var allCheckIns = await _unitOfWork.CheckIns.GetAllAsync();
+        var allViolations = await _unitOfWork.ContractViolations.GetAllAsync();
+        var allMakeUpRequests = await _unitOfWork.MakeUpRequests.GetAllAsync();
+        var contract = await _unitOfWork.Contracts.GetByIdAsync(contractId);
+
+        var contractCheckIns = allCheckIns
+            .Where(ci => ci.ContractId == contractId && ci.UserId == userId)
+            .ToList();
+
+        var totalDays = contract != null
+            ? (contract.EndDate.Date - contract.StartDate.Date).Days + 1
+            : contractCheckIns.Count;
+
+        var completedDays = contractCheckIns.Count(ci => ci.Status == CheckInStatus.Normal || ci.Status == CheckInStatus.MakeUp);
+        var completionRate = totalDays > 0
+            ? Math.Round((double)completedDays / totalDays * 100, 2)
+            : 0;
+
+        var streaks = await _checkInService.GetStreaksAsync(contractId, userId);
+
+        var thirtyDaysAgo = checkInDate.AddDays(-30);
+        var recentViolations = allViolations
+            .Count(v => v.ContractId == contractId && v.UserId == userId && v.ViolationDate >= thirtyDaysAgo && v.ViolationDate <= checkInDate);
+
+        var recentMakeUpRequests = allMakeUpRequests
+            .Count(r => r.ContractId == contractId && r.UserId == userId && r.CreatedAt >= thirtyDaysAgo && r.CreatedAt <= checkInDate);
+
+        var recentCheckInDates = contractCheckIns
+            .Where(ci => ci.CheckInDate >= thirtyDaysAgo && ci.CheckInDate <= checkInDate)
+            .OrderByDescending(ci => ci.CheckInDate)
+            .Take(14)
+            .Select(ci => $"{ci.CheckInDate:yyyy-MM-dd} ({GetCheckInStatusName(ci.Status)})")
+            .ToList();
+
+        return new ReviewContextDto
+        {
+            TotalCheckIns = contractCheckIns.Count,
+            NormalCheckIns = contractCheckIns.Count(ci => ci.Status == CheckInStatus.Normal),
+            MakeUpCheckIns = contractCheckIns.Count(ci => ci.Status == CheckInStatus.MakeUp),
+            MissedCheckIns = contractCheckIns.Count(ci => ci.Status == CheckInStatus.Missed),
+            CompletionRate = completionRate,
+            CurrentStreak = streaks.CurrentStreak,
+            LongestStreak = streaks.LongestStreak,
+            Recent30DaysViolations = recentViolations,
+            Recent30DaysMakeUpRequests = recentMakeUpRequests,
+            RecentCheckInDates = recentCheckInDates
+        };
+    }
+
+    private static string GetCheckInStatusName(CheckInStatus status)
+    {
+        return status switch
+        {
+            CheckInStatus.Normal => "正常",
+            CheckInStatus.MakeUp => "补卡",
+            CheckInStatus.Missed => "未打卡",
+            CheckInStatus.Pending => "待审核",
+            _ => "未知"
+        };
     }
 
     private async Task<MakeUpRequestListDto> MapToMakeUpRequestListDto(MakeUpRequest request)

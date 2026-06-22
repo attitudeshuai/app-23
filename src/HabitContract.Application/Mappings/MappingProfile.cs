@@ -106,14 +106,17 @@ public class MappingProfile : Profile
 
         // 违约映射
         CreateMap<ContractViolation, ContractViolationDto>()
-            .ForMember(dest => dest.ContractName, opt => opt.Ignore());
+            .ForMember(dest => dest.ContractName, opt => opt.Ignore())
+            .ForMember(dest => dest.Username, opt => opt.Ignore());
 
         CreateMap<ContractViolationCreateDto, ContractViolation>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.UserId, opt => opt.Ignore())
             .ForMember(dest => dest.IsConfirmed, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
             .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
-            .ForMember(dest => dest.Contract, opt => opt.Ignore());
+            .ForMember(dest => dest.Contract, opt => opt.Ignore())
+            .ForMember(dest => dest.User, opt => opt.Ignore());
 
         // 分页结果映射
         CreateMap(typeof(PagedResult<>), typeof(PagedResultDto<>));

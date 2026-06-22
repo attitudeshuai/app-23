@@ -3,6 +3,20 @@ using HabitContract.Domain.Enums;
 
 namespace HabitContract.Application.DTOs;
 
+public class ReviewContextDto
+{
+    public int TotalCheckIns { get; set; }
+    public int NormalCheckIns { get; set; }
+    public int MakeUpCheckIns { get; set; }
+    public int MissedCheckIns { get; set; }
+    public double CompletionRate { get; set; }
+    public int CurrentStreak { get; set; }
+    public int LongestStreak { get; set; }
+    public int Recent30DaysViolations { get; set; }
+    public int Recent30DaysMakeUpRequests { get; set; }
+    public List<string>? RecentCheckInDates { get; set; }
+}
+
 public class MakeUpRequestCreateDto
 {
     [Required(ErrorMessage = "契约ID不能为空")]
@@ -48,6 +62,7 @@ public class MakeUpRequestDto
     public DateTime? ReviewedAt { get; set; }
     public string? RejectionReason { get; set; }
     public DateTime CreatedAt { get; set; }
+    public ReviewContextDto? ReviewContext { get; set; }
 }
 
 public class MakeUpRequestListDto
