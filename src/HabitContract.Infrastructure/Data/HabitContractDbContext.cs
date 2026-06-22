@@ -22,6 +22,7 @@ public class HabitContractDbContext : DbContext
     public DbSet<ContractReminderSetting> ContractReminderSettings { get; set; }
     public DbSet<ReminderRecord> ReminderRecords { get; set; }
     public DbSet<ReminderTemplate> ReminderTemplates { get; set; }
+    public DbSet<RoleChangeAudit> RoleChangeAudits { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -211,6 +212,30 @@ public class HabitContractDbContext : DbContext
             entity.HasIndex(t => t.Type);
             entity.HasIndex(t => t.IsActive);
             entity.HasIndex(t => t.IsDefault);
+        });
+
+        modelBuilder.Entity<RoleChangeAudit>(entity =>
+        {
+            entity.HasOne<Contract>()
+                .WithMany()
+                .HasForeignKey(a => a.ContractId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(a => a.PartnerId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(a => a.ChangedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.Property(a => a.ChangeReason).HasMaxLength(500);
+            entity.Property(a => a.ChangedByUsername).HasMaxLength(50);
+            entity.Property(a => a.PartnerUsername).HasMaxLength(50);
+            entity.Property(a => a.ContractName).HasMaxLength(100);
+            entity.HasIndex(a => a.ContractId);
+            entity.HasIndex(a => a.PartnerId);
+            entity.HasIndex(a => a.ChangedByUserId);
+            entity.HasIndex(a => a.CreatedAt);
         });
     }
 }

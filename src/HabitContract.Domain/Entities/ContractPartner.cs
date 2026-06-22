@@ -7,6 +7,7 @@ public class ContractPartner : BaseEntity<int>
 {
     public int ContractId { get; set; }
     public int PartnerId { get; set; }
+    public PartnerRole Role { get; set; } = PartnerRole.Supervisor;
     public PartnerStatus Status { get; set; } = PartnerStatus.Pending;
     public DateTime? JoinedAt { get; set; }
 

@@ -14,17 +14,20 @@ public class CheckInService : ICheckInService
     private readonly IMapper _mapper;
     private readonly IFrequencyRuleCache _frequencyCache;
     private readonly IEnumerable<INotificationSender> _notificationSenders;
+    private readonly IPermissionService _permissionService;
 
     public CheckInService(
         IUnitOfWork unitOfWork,
         IMapper mapper,
         IFrequencyRuleCache frequencyCache,
-        IEnumerable<INotificationSender> notificationSenders)
+        IEnumerable<INotificationSender> notificationSenders,
+        IPermissionService permissionService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _frequencyCache = frequencyCache;
         _notificationSenders = notificationSenders;
+        _permissionService = permissionService;
     }
 
     public async Task<PagedResultDto<CheckInListDto>> GetCheckInsAsync(QueryParameters parameters)
@@ -33,12 +36,18 @@ public class CheckInService : ICheckInService
         return await MapToPagedCheckInListDto(pagedResult);
     }
 
-    public async Task<CheckInDto> GetCheckInByIdAsync(int id)
+    public async Task<CheckInDto> GetCheckInByIdAsync(int userId, int id)
     {
         var checkIn = await _unitOfWork.CheckIns.GetByIdAsync(id);
         if (checkIn == null)
         {
             throw new BusinessException("打卡记录不存在", 404);
+        }
+
+        var (isAllowed, errorMsg) = await _permissionService.CheckPermissionAsync(userId, checkIn.ContractId, ContractOperation.ViewCheckIns);
+        if (!isAllowed)
+        {
+            throw new BusinessException(errorMsg, 403);
         }
 
         return await MapToCheckInDto(checkIn);
@@ -86,6 +95,12 @@ public class CheckInService : ICheckInService
             throw new BusinessException("打卡记录不存在", 404);
         }
 
+        var (isAllowed, errorMsg) = await _permissionService.CheckPermissionAsync(userId, checkIn.ContractId, ContractOperation.EditCheckIn);
+        if (!isAllowed)
+        {
+            throw new BusinessException(errorMsg, 403);
+        }
+
         if (checkIn.UserId != userId)
         {
             throw new BusinessException("无权限修改此打卡记录", 403);
@@ -110,6 +125,12 @@ public class CheckInService : ICheckInService
         if (checkIn == null)
         {
             throw new BusinessException("打卡记录不存在", 404);
+        }
+
+        var (isAllowed, errorMsg) = await _permissionService.CheckPermissionAsync(userId, checkIn.ContractId, ContractOperation.DeleteCheckIn);
+        if (!isAllowed)
+        {
+            throw new BusinessException(errorMsg, 403);
         }
 
         if (checkIn.UserId != userId)

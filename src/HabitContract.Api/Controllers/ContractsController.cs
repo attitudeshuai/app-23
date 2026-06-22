@@ -37,7 +37,7 @@ public class ContractsController : ApiControllerBase
     [Authorize]
     public async Task<IActionResult> GetContractById(int id)
     {
-        var result = await _contractService.GetContractByIdAsync(id);
+        var result = await _contractService.GetContractByIdAsync(GetCurrentUserId(), id);
         return Success(result);
     }
 

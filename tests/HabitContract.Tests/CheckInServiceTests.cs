@@ -18,6 +18,7 @@ public class CheckInServiceTests
     private readonly Mock<IMapper> _mockMapper;
     private readonly Mock<IFrequencyRuleCache> _mockFrequencyCache;
     private readonly Mock<INotificationSender> _mockNotificationSender;
+    private readonly Mock<IPermissionService> _mockPermissionService;
     private readonly FrequencyParser _frequencyParser;
     private readonly CheckInService _checkInService;
 
@@ -32,6 +33,7 @@ public class CheckInServiceTests
         _mockMapper = new Mock<IMapper>();
         _mockFrequencyCache = new Mock<IFrequencyRuleCache>();
         _mockNotificationSender = new Mock<INotificationSender>();
+        _mockPermissionService = new Mock<IPermissionService>();
         _frequencyParser = new FrequencyParser();
 
         _checkIns.Clear();
@@ -41,13 +43,15 @@ public class CheckInServiceTests
 
         SetupRepositories();
         SetupNotificationSender();
+        SetupPermissionService();
 
         var senders = new[] { _mockNotificationSender.Object };
         _checkInService = new CheckInService(
             _mockUnitOfWork.Object,
             _mockMapper.Object,
             _mockFrequencyCache.Object,
-            senders);
+            senders,
+            _mockPermissionService.Object);
     }
 
     private void SetupRepositories()
@@ -112,6 +116,15 @@ public class CheckInServiceTests
             .Returns(ReminderChannel.InApp);
         _mockNotificationSender.Setup(s => s.SendAsync(It.IsAny<User>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(true);
+    }
+
+    private void SetupPermissionService()
+    {
+        _mockPermissionService.Setup(s => s.CheckPermissionAsync(
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<ContractOperation>()))
+            .ReturnsAsync((true, string.Empty));
     }
 
     private void SetupFrequencyCache(string frequency)

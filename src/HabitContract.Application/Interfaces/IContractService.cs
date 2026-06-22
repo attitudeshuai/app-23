@@ -6,7 +6,7 @@ namespace HabitContract.Application.Interfaces;
 public interface IContractService
 {
     Task<PagedResultDto<ContractListDto>> GetContractsAsync(QueryParameters parameters);
-    Task<ContractDto> GetContractByIdAsync(int id);
+    Task<ContractDto> GetContractByIdAsync(int userId, int id);
     Task<ContractDto> CreateContractAsync(int userId, ContractCreateDto dto);
     Task<ContractDto> UpdateContractAsync(int userId, int id, ContractUpdateDto dto);
     Task DeleteContractAsync(int userId, int id);

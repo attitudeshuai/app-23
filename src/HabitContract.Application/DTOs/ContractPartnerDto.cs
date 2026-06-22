@@ -10,10 +10,13 @@ public class ContractPartnerCreateDto
 
     [Required(ErrorMessage = "伙伴ID不能为空")]
     public int PartnerId { get; set; }
+
+    public PartnerRole Role { get; set; } = PartnerRole.Supervisor;
 }
 
 public class ContractPartnerUpdateDto
 {
+    public PartnerRole? Role { get; set; }
     public PartnerStatus? Status { get; set; }
 }
 
@@ -30,6 +33,7 @@ public class ContractPartnerDto
     public string? ContractName { get; set; }
     public int PartnerId { get; set; }
     public string? PartnerName { get; set; }
+    public PartnerRole Role { get; set; }
     public PartnerStatus Status { get; set; }
     public DateTime? JoinedAt { get; set; }
     public DateTime CreatedAt { get; set; }

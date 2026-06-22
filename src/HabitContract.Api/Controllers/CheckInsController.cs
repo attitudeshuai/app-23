@@ -37,7 +37,7 @@ public class CheckInsController : ApiControllerBase
     [Authorize]
     public async Task<IActionResult> GetCheckInById(int id)
     {
-        var result = await _checkInService.GetCheckInByIdAsync(id);
+        var result = await _checkInService.GetCheckInByIdAsync(GetCurrentUserId(), id);
         return Success(result);
     }
 

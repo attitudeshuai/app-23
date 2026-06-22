@@ -15,19 +15,22 @@ public class ContractService : IContractService
     private readonly IFrequencyRuleCache _frequencyCache;
     private readonly IFrequencyParser _frequencyParser;
     private readonly ICheckInService _checkInService;
+    private readonly IPermissionService _permissionService;
 
     public ContractService(
         IUnitOfWork unitOfWork,
         IMapper mapper,
         IFrequencyRuleCache frequencyCache,
         IFrequencyParser frequencyParser,
-        ICheckInService checkInService)
+        ICheckInService checkInService,
+        IPermissionService permissionService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _frequencyCache = frequencyCache;
         _frequencyParser = frequencyParser;
         _checkInService = checkInService;
+        _permissionService = permissionService;
     }
 
     public async Task<PagedResultDto<ContractListDto>> GetContractsAsync(QueryParameters parameters)
@@ -36,12 +39,18 @@ public class ContractService : IContractService
         return await MapToPagedContractListDto(pagedResult);
     }
 
-    public async Task<ContractDto> GetContractByIdAsync(int id)
+    public async Task<ContractDto> GetContractByIdAsync(int userId, int id)
     {
         var contract = await _unitOfWork.Contracts.GetByIdAsync(id);
         if (contract == null)
         {
             throw new BusinessException("契约不存在", 404);
+        }
+
+        var (isAllowed, errorMsg) = await _permissionService.CheckPermissionAsync(userId, id, ContractOperation.ViewContract);
+        if (!isAllowed)
+        {
+            throw new BusinessException(errorMsg, 403);
         }
 
         return await MapToContractDto(contract);
@@ -75,9 +84,10 @@ public class ContractService : IContractService
             throw new BusinessException("契约不存在", 404);
         }
 
-        if (contract.OwnerId != userId)
+        var (isAllowed, errorMsg) = await _permissionService.CheckPermissionAsync(userId, id, ContractOperation.EditContract);
+        if (!isAllowed)
         {
-            throw new BusinessException("无权限修改此契约", 403);
+            throw new BusinessException(errorMsg, 403);
         }
 
         var frequencyChanged = false;
@@ -124,9 +134,10 @@ public class ContractService : IContractService
             throw new BusinessException("契约不存在", 404);
         }
 
-        if (contract.OwnerId != userId)
+        var (isAllowed, errorMsg) = await _permissionService.CheckPermissionAsync(userId, id, ContractOperation.DeleteContract);
+        if (!isAllowed)
         {
-            throw new BusinessException("无权限删除此契约", 403);
+            throw new BusinessException(errorMsg, 403);
         }
 
         await _frequencyCache.RemoveAsync(contract.Id);
@@ -142,15 +153,16 @@ public class ContractService : IContractService
             throw new BusinessException("契约不存在", 404);
         }
 
-        if (contract.OwnerId != userId)
+        var (isAllowed, errorMsg) = await _permissionService.CheckPermissionAsync(userId, id, ContractOperation.ChangeContractStatus);
+        if (!isAllowed)
         {
-            throw new BusinessException("无权限修改此契约状态", 403);
+            throw new BusinessException(errorMsg, 403);
         }
 
-        var (isValid, errorMsg) = ValidateStatusTransition(contract.Status, dto.Status);
+        var (isValid, errorMsg2) = ValidateStatusTransition(contract.Status, dto.Status);
         if (!isValid)
         {
-            throw new BusinessException(errorMsg);
+            throw new BusinessException(errorMsg2);
         }
 
         var previousStatus = contract.Status;
