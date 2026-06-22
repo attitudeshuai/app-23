@@ -39,6 +39,9 @@ public class UserDto
     public string Username { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string? Avatar { get; set; }
+    public int CreditScore { get; set; }
+    public decimal OutstandingPenaltyBalance { get; set; }
+    public bool IsPaymentSuspended { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 

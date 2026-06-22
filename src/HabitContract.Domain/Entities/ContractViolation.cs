@@ -15,4 +15,5 @@ public class ContractViolation : BaseEntity<int>
 
     public Contract Contract { get; set; } = null!;
     public User User { get; set; } = null!;
+    public ICollection<PenaltyExecutionRecord> PenaltyExecutionRecords { get; set; } = new List<PenaltyExecutionRecord>();
 }

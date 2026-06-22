@@ -22,6 +22,8 @@ public class ContractViolationCreateDto
     [Required(ErrorMessage = "违约原因不能为空")]
     [StringLength(500, ErrorMessage = "违约原因最多500个字符")]
     public string Reason { get; set; } = string.Empty;
+
+    public bool AutoCalculatePenalty { get; set; } = true;
 }
 
 public class ContractViolationUpdateDto
@@ -49,4 +51,6 @@ public class ContractViolationDto
     public string Reason { get; set; } = string.Empty;
     public bool IsConfirmed { get; set; }
     public DateTime CreatedAt { get; set; }
+    public List<PenaltyExecutionDto> PenaltyExecutionRecords { get; set; } = new();
+    public PenaltyCalculationResult? PenaltyCalculationResult { get; set; }
 }

@@ -27,6 +27,8 @@ public static class ApplicationServiceRegistration
         services.AddScoped<IPermissionService, PermissionService>();
         services.AddScoped<IRoleChangeAuditService, RoleChangeAuditService>();
         services.AddScoped<IMakeUpRequestService, MakeUpRequestService>();
+        services.AddScoped<IPenaltyRuleParser, PenaltyRuleParser>();
+        services.AddScoped<IPenaltyService, PenaltyService>();
 
         services.AddHostedService<ReminderBackgroundService>();
 

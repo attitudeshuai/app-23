@@ -183,5 +183,28 @@ public class MappingProfile : Profile
 
         // 角色变更审计映射
         CreateMap<RoleChangeAudit, RoleChangeAuditDto>();
+
+        // 惩罚规则映射
+        CreateMap<PenaltyRule, PenaltyRuleDto>()
+            .ForMember(dest => dest.ContractName, opt => opt.Ignore())
+            .ForMember(dest => dest.PenaltyTypeName, opt => opt.Ignore())
+            .ForMember(dest => dest.DefaultSeverityName, opt => opt.Ignore());
+
+        CreateMap<PenaltyRuleCreateDto, PenaltyRule>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.IsActive, opt => opt.Ignore())
+            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.Contract, opt => opt.Ignore())
+            .ForMember(dest => dest.ExecutionRecords, opt => opt.Ignore());
+
+        // 惩罚执行记录映射
+        CreateMap<PenaltyExecutionRecord, PenaltyExecutionDto>()
+            .ForMember(dest => dest.ContractName, opt => opt.Ignore())
+            .ForMember(dest => dest.Username, opt => opt.Ignore())
+            .ForMember(dest => dest.PenaltyTypeName, opt => opt.Ignore())
+            .ForMember(dest => dest.SeverityName, opt => opt.Ignore())
+            .ForMember(dest => dest.StatusName, opt => opt.Ignore())
+            .ForMember(dest => dest.WaivedByUsername, opt => opt.Ignore());
     }
 }

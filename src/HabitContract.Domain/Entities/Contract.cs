@@ -23,4 +23,6 @@ public class Contract : BaseEntity<int>
     public ICollection<CheckIn> CheckIns { get; set; } = new List<CheckIn>();
     public ICollection<ContractViolation> Violations { get; set; } = new List<ContractViolation>();
     public ICollection<MakeUpRequest> MakeUpRequests { get; set; } = new List<MakeUpRequest>();
+    public ICollection<PenaltyRule> PenaltyRules { get; set; } = new List<PenaltyRule>();
+    public ICollection<PenaltyExecutionRecord> PenaltyExecutionRecords { get; set; } = new List<PenaltyExecutionRecord>();
 }

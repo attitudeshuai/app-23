@@ -17,6 +17,8 @@ public interface IUnitOfWork : IDisposable
     IContractReminderSettingRepository ContractReminderSettings { get; }
     IReminderRecordRepository ReminderRecords { get; }
     IReminderTemplateRepository ReminderTemplates { get; }
+    IPenaltyRuleRepository PenaltyRules { get; }
+    IPenaltyExecutionRecordRepository PenaltyExecutionRecords { get; }
     Task<int> SaveChangesAsync();
     Task BeginTransactionAsync();
     Task CommitTransactionAsync();

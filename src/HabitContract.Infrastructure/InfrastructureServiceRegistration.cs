@@ -49,6 +49,8 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<IContractReminderSettingRepository, ContractReminderSettingRepository>();
         services.AddScoped<IReminderRecordRepository, ReminderRecordRepository>();
         services.AddScoped<IReminderTemplateRepository, ReminderTemplateRepository>();
+        services.AddScoped<IPenaltyRuleRepository, PenaltyRuleRepository>();
+        services.AddScoped<IPenaltyExecutionRecordRepository, PenaltyExecutionRecordRepository>();
         services.AddScoped<IJwtService, JwtService>();
 
         services.AddScoped<INotificationSender, InAppNotificationSender>();

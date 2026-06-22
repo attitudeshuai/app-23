@@ -24,6 +24,8 @@ public class HabitContractDbContext : DbContext
     public DbSet<ReminderTemplate> ReminderTemplates { get; set; }
     public DbSet<RoleChangeAudit> RoleChangeAudits { get; set; }
     public DbSet<MakeUpRequest> MakeUpRequests { get; set; }
+    public DbSet<PenaltyRule> PenaltyRules { get; set; }
+    public DbSet<PenaltyExecutionRecord> PenaltyExecutionRecords { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -38,6 +40,10 @@ public class HabitContractDbContext : DbContext
             entity.Property(u => u.Email).IsRequired().HasMaxLength(100);
             entity.Property(u => u.PasswordHash).IsRequired().HasMaxLength(256);
             entity.Property(u => u.Avatar).HasMaxLength(500);
+            entity.Property(u => u.CreditScore).HasDefaultValue(100);
+            entity.Property(u => u.OutstandingPenaltyBalance).HasPrecision(18, 2).HasDefaultValue(0m);
+            entity.Property(u => u.IsPaymentSuspended).HasDefaultValue(false);
+            entity.HasIndex(u => u.CreditScore);
         });
 
         // 契约表配置：一个用户可拥有多个契约，删除时限制级联
@@ -283,6 +289,64 @@ public class HabitContractDbContext : DbContext
             entity.HasIndex(a => a.PartnerId);
             entity.HasIndex(a => a.ChangedByUserId);
             entity.HasIndex(a => a.CreatedAt);
+        });
+
+        // 惩罚规则表配置
+        modelBuilder.Entity<PenaltyRule>(entity =>
+        {
+            entity.HasOne(pr => pr.Contract)
+                .WithMany(c => c.PenaltyRules)
+                .HasForeignKey(pr => pr.ContractId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(pr => pr.PenaltyType).HasDefaultValue(PenaltyType.Custom);
+            entity.Property(pr => pr.DefaultSeverity).HasDefaultValue(PenaltySeverity.Medium);
+            entity.Property(pr => pr.RuleExpression).IsRequired().HasMaxLength(1000);
+            entity.Property(pr => pr.BaseAmount).HasMaxLength(200);
+            entity.Property(pr => pr.EscalationRule).HasMaxLength(500);
+            entity.Property(pr => pr.CreditScoreAffected).HasDefaultValue(true);
+            entity.Property(pr => pr.CreditScoreImpact).HasDefaultValue(5);
+            entity.Property(pr => pr.PaymentRequired).HasDefaultValue(false);
+            entity.Property(pr => pr.Description).HasMaxLength(500);
+            entity.Property(pr => pr.IsActive).HasDefaultValue(true);
+            entity.HasIndex(pr => pr.ContractId);
+            entity.HasIndex(pr => pr.PenaltyType);
+            entity.HasIndex(pr => pr.IsActive);
+        });
+
+        // 惩罚执行记录表配置
+        modelBuilder.Entity<PenaltyExecutionRecord>(entity =>
+        {
+            entity.HasOne(per => per.PenaltyRule)
+                .WithMany(pr => pr.ExecutionRecords)
+                .HasForeignKey(per => per.PenaltyRuleId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(per => per.Contract)
+                .WithMany(c => c.PenaltyExecutionRecords)
+                .HasForeignKey(per => per.ContractId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(per => per.User)
+                .WithMany(u => u.PenaltyExecutionRecords)
+                .HasForeignKey(per => per.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(per => per.ContractViolation)
+                .WithMany(cv => cv.PenaltyExecutionRecords)
+                .HasForeignKey(per => per.ContractViolationId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.Property(per => per.CalculatedContent).IsRequired().HasMaxLength(2000);
+            entity.Property(per => per.Details).HasMaxLength(1000);
+            entity.Property(per => per.FinancialAmount).HasPrecision(18, 2);
+            entity.Property(per => per.CreditScoreChange).HasDefaultValue(0);
+            entity.Property(per => per.PaymentCompleted).HasDefaultValue(false);
+            entity.Property(per => per.WaivedReason).HasMaxLength(500);
+            entity.HasIndex(per => per.ContractId);
+            entity.HasIndex(per => per.UserId);
+            entity.HasIndex(per => per.ContractViolationId);
+            entity.HasIndex(per => per.PenaltyRuleId);
+            entity.HasIndex(per => per.Status);
+            entity.HasIndex(per => per.Severity);
+            entity.HasIndex(per => per.PenaltyType);
+            entity.HasIndex(per => per.CreatedAt);
+            entity.HasIndex(per => per.ExecutionDeadline);
         });
     }
 }

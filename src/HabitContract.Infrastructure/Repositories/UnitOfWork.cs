@@ -24,6 +24,8 @@ public class UnitOfWork : IUnitOfWork
     private IContractReminderSettingRepository? _contractReminderSettings;
     private IReminderRecordRepository? _reminderRecords;
     private IReminderTemplateRepository? _reminderTemplates;
+    private IPenaltyRuleRepository? _penaltyRules;
+    private IPenaltyExecutionRecordRepository? _penaltyExecutionRecords;
 
     public UnitOfWork(HabitContractDbContext context)
     {
@@ -43,6 +45,8 @@ public class UnitOfWork : IUnitOfWork
     public IContractReminderSettingRepository ContractReminderSettings => _contractReminderSettings ??= new ContractReminderSettingRepository(_context);
     public IReminderRecordRepository ReminderRecords => _reminderRecords ??= new ReminderRecordRepository(_context);
     public IReminderTemplateRepository ReminderTemplates => _reminderTemplates ??= new ReminderTemplateRepository(_context);
+    public IPenaltyRuleRepository PenaltyRules => _penaltyRules ??= new PenaltyRuleRepository(_context);
+    public IPenaltyExecutionRecordRepository PenaltyExecutionRecords => _penaltyExecutionRecords ??= new PenaltyExecutionRecordRepository(_context);
 
     public async Task<int> SaveChangesAsync()
     {

@@ -14,17 +14,20 @@ public class ContractViolationService : IContractViolationService
     private readonly IMapper _mapper;
     private readonly IEnumerable<INotificationSender> _notificationSenders;
     private readonly IPermissionService _permissionService;
+    private readonly IPenaltyRuleParser _penaltyRuleParser;
 
     public ContractViolationService(
         IUnitOfWork unitOfWork,
         IMapper mapper,
         IEnumerable<INotificationSender> notificationSenders,
-        IPermissionService permissionService)
+        IPermissionService permissionService,
+        IPenaltyRuleParser penaltyRuleParser)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _notificationSenders = notificationSenders;
         _permissionService = permissionService;
+        _penaltyRuleParser = penaltyRuleParser;
     }
 
     public async Task<PagedResultDto<ContractViolationDto>> GetViolationsAsync(QueryParameters parameters)
@@ -73,12 +76,64 @@ public class ContractViolationService : IContractViolationService
         var created = await _unitOfWork.ContractViolations.AddAsync(violation);
         await _unitOfWork.SaveChangesAsync();
 
+        PenaltyExecutionRecord? penaltyRecord = null;
+        PenaltyCalculationResult? calcResult = null;
+
+        if (dto.AutoCalculatePenalty)
+        {
+            var penaltyRule = await _unitOfWork.PenaltyRules.GetActiveByContractIdAsync(dto.ContractId);
+
+            var allPriorRecords = await _unitOfWork.PenaltyExecutionRecords.GetByContractIdAndUserIdAsync(dto.ContractId, dto.UserId);
+            var priorCount = allPriorRecords.Count;
+
+            calcResult = _penaltyRuleParser.ParseAndCalculate(penaltyRule, contract, user, created, priorCount);
+
+            penaltyRecord = new PenaltyExecutionRecord
+            {
+                PenaltyRuleId = penaltyRule?.Id ?? 0,
+                ContractId = dto.ContractId,
+                UserId = dto.UserId,
+                ContractViolationId = created.Id,
+                PenaltyType = calcResult.PenaltyType,
+                Severity = calcResult.Severity,
+                Status = PenaltyExecutionStatus.Pending,
+                CalculatedContent = calcResult.CalculatedContent,
+                Details = calcResult.Message,
+                FinancialAmount = calcResult.FinancialAmount,
+                CreditScoreChange = calcResult.CreditScoreChange,
+                PaymentCompleted = false,
+                ExecutionDeadline = DateTime.UtcNow.AddDays(7),
+                CreatedAt = DateTime.UtcNow
+            };
+
+            if (calcResult.CreditScoreChange > 0)
+            {
+                user.CreditScore = Math.Max(0, user.CreditScore - calcResult.CreditScoreChange);
+                await _unitOfWork.Users.UpdateAsync(user);
+            }
+
+            if (calcResult.FinancialAmount.HasValue && calcResult.FinancialAmount.Value > 0)
+            {
+                user.OutstandingPenaltyBalance += calcResult.FinancialAmount.Value;
+                await _unitOfWork.Users.UpdateAsync(user);
+            }
+
+            await _unitOfWork.PenaltyExecutionRecords.AddAsync(penaltyRecord);
+            await _unitOfWork.SaveChangesAsync();
+        }
+
         if (violation.IsSevere)
         {
             await NotifySevereViolationAsync(contract, violation);
         }
 
-        return await MapToViolationDto(created);
+        var resultDto = await MapToViolationDto(created);
+        if (penaltyRecord != null && calcResult != null)
+        {
+            resultDto.PenaltyCalculationResult = calcResult;
+        }
+
+        return resultDto;
     }
 
     public async Task<ContractViolationDto> UpdateViolationAsync(int userId, int id, ContractViolationUpdateDto dto)
@@ -209,6 +264,48 @@ public class ContractViolationService : IContractViolationService
 
         var user = await _unitOfWork.Users.GetByIdAsync(violation.UserId);
         dto.Username = user?.Username;
+
+        var penaltyRecords = await _unitOfWork.PenaltyExecutionRecords.GetByViolationIdAsync(violation.Id);
+        foreach (var record in penaltyRecords)
+        {
+            var penaltyDto = new PenaltyExecutionDto
+            {
+                Id = record.Id,
+                PenaltyRuleId = record.PenaltyRuleId,
+                ContractId = record.ContractId,
+                ContractName = contract?.HabitName,
+                UserId = record.UserId,
+                Username = user?.Username,
+                ContractViolationId = record.ContractViolationId,
+                PenaltyType = record.PenaltyType,
+                PenaltyTypeName = PenaltyTypeMigrator.GetPenaltyTypeName(record.PenaltyType),
+                Severity = record.Severity,
+                SeverityName = PenaltyTypeMigrator.GetSeverityName(record.Severity),
+                Status = record.Status,
+                StatusName = PenaltyTypeMigrator.GetExecutionStatusName(record.Status),
+                CalculatedContent = record.CalculatedContent,
+                Details = record.Details,
+                FinancialAmount = record.FinancialAmount,
+                CreditScoreChange = record.CreditScoreChange,
+                PaymentCompleted = record.PaymentCompleted,
+                PaymentDate = record.PaymentDate,
+                ExecutionDeadline = record.ExecutionDeadline,
+                CompletedAt = record.CompletedAt,
+                WaivedByUserId = record.WaivedByUserId,
+                WaivedReason = record.WaivedReason,
+                WaivedAt = record.WaivedAt,
+                CreatedAt = record.CreatedAt,
+                UpdatedAt = record.UpdatedAt
+            };
+
+            if (record.WaivedByUserId.HasValue)
+            {
+                var waivedBy = await _unitOfWork.Users.GetByIdAsync(record.WaivedByUserId.Value);
+                penaltyDto.WaivedByUsername = waivedBy?.Username;
+            }
+
+            dto.PenaltyExecutionRecords.Add(penaltyDto);
+        }
 
         return dto;
     }
