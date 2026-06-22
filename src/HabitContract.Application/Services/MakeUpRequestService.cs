@@ -165,10 +165,10 @@ public class MakeUpRequestService : IMakeUpRequestService
 
             await _unitOfWork.MakeUpRequests.UpdateAsync(request);
 
+            var existingCheckIn = await _unitOfWork.CheckIns.GetByDateAsync(request.ContractId, request.UserId, request.CheckInDate);
+
             if (dto.Status == MakeUpRequestStatus.Approved)
             {
-                var existingCheckIn = await _unitOfWork.CheckIns.GetByDateAsync(request.ContractId, request.UserId, request.CheckInDate);
-
                 if (existingCheckIn != null)
                 {
                     existingCheckIn.Status = CheckInStatus.MakeUp;
@@ -204,16 +204,39 @@ public class MakeUpRequestService : IMakeUpRequestService
                 await _unitOfWork.SaveChangesAsync();
 
                 var allCheckIns = await _unitOfWork.CheckIns.GetByContractAndUserIdAsync(request.ContractId, request.UserId);
-                var subsequentCheckIns = allCheckIns
+                var subsequentCheckIns = allCheckIns?
                     .Where(ci => ci.CheckInDate > request.CheckInDate && ci.Status != CheckInStatus.Missed)
                     .OrderBy(ci => ci.CheckInDate)
-                    .ToList();
+                    .ToList() ?? new List<CheckIn>();
 
                 foreach (var checkIn in subsequentCheckIns)
                 {
                     checkIn.ConsecutiveDays = await _unitOfWork.CheckIns.GetConsecutiveDaysAsync(
                         request.ContractId, request.UserId, checkIn.CheckInDate);
                     await _unitOfWork.CheckIns.UpdateAsync(checkIn);
+                }
+            }
+            else if (dto.Status == MakeUpRequestStatus.Rejected)
+            {
+                if (existingCheckIn != null && existingCheckIn.Status != CheckInStatus.Missed)
+                {
+                    existingCheckIn.Status = CheckInStatus.Missed;
+                    existingCheckIn.StatusChangedAt = DateTime.UtcNow;
+                    existingCheckIn.ConsecutiveDays = 0;
+                    await _unitOfWork.CheckIns.UpdateAsync(existingCheckIn);
+
+                    var allCheckIns = await _unitOfWork.CheckIns.GetByContractAndUserIdAsync(request.ContractId, request.UserId);
+                    var subsequentCheckIns = allCheckIns?
+                        .Where(ci => ci.CheckInDate > request.CheckInDate && ci.Status != CheckInStatus.Missed)
+                        .OrderBy(ci => ci.CheckInDate)
+                        .ToList() ?? new List<CheckIn>();
+
+                    foreach (var checkIn in subsequentCheckIns)
+                    {
+                        checkIn.ConsecutiveDays = await _unitOfWork.CheckIns.GetConsecutiveDaysAsync(
+                            request.ContractId, request.UserId, checkIn.CheckInDate);
+                        await _unitOfWork.CheckIns.UpdateAsync(checkIn);
+                    }
                 }
             }
 

@@ -112,12 +112,11 @@ public class CheckInService : ICheckInService
             return CheckInStatus.Normal;
         }
 
-        var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZone);
         var makeUpDeadline = checkInDate.Date.AddDays(contract.MakeUpDeadlineDays);
 
-        if (nowLocal.Date <= makeUpDeadline)
+        if (checkInLocalTime.Date <= makeUpDeadline)
         {
-            return CheckInStatus.Pending;
+            return CheckInStatus.MakeUp;
         }
 
         return CheckInStatus.Missed;
@@ -451,9 +450,60 @@ public class CheckInService : ICheckInService
         }
     }
 
-    public async Task UpdateMissedCheckInStatusesAsync()
+    public async Task<int> UpdateMissedCheckInStatusesAsync()
     {
+        var updatedCount = 0;
+        var pendingRequests = await _unitOfWork.MakeUpRequests.GetPendingRequestsAsync();
+        var now = DateTime.UtcNow;
+
+        foreach (var request in pendingRequests)
+        {
+            var contract = request.Contract;
+            if (contract == null) continue;
+
+            var timeZone = TimeZoneInfo.FindSystemTimeZoneById(contract.TimeZone);
+            var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(now, timeZone);
+            var makeUpDeadline = request.CheckInDate.Date.AddDays(contract.MakeUpDeadlineDays);
+
+            if (nowLocal.Date > makeUpDeadline)
+            {
+                request.Status = MakeUpRequestStatus.Rejected;
+                request.ReviewedAt = now;
+                request.RejectionReason = "补卡申请已超过审核期限，系统自动拒绝";
+                await _unitOfWork.MakeUpRequests.UpdateAsync(request);
+
+                var existingCheckIn = await _unitOfWork.CheckIns.GetByDateAsync(
+                    request.ContractId, request.UserId, request.CheckInDate);
+                if (existingCheckIn != null && existingCheckIn.Status != CheckInStatus.Missed)
+                {
+                    existingCheckIn.Status = CheckInStatus.Missed;
+                    existingCheckIn.StatusChangedAt = now;
+                    existingCheckIn.ConsecutiveDays = 0;
+                    await _unitOfWork.CheckIns.UpdateAsync(existingCheckIn);
+
+                    var allCheckIns = await _unitOfWork.CheckIns.GetByContractAndUserIdAsync(
+                        request.ContractId, request.UserId);
+                    var subsequentCheckIns = allCheckIns?
+                        .Where(ci => ci.CheckInDate > request.CheckInDate && ci.Status != CheckInStatus.Missed)
+                        .OrderBy(ci => ci.CheckInDate)
+                        .ToList() ?? new List<CheckIn>();
+
+                    foreach (var checkIn in subsequentCheckIns)
+                    {
+                        checkIn.ConsecutiveDays = await _unitOfWork.CheckIns.GetConsecutiveDaysAsync(
+                            request.ContractId, request.UserId, checkIn.CheckInDate);
+                        await _unitOfWork.CheckIns.UpdateAsync(checkIn);
+                    }
+                }
+
+                updatedCount++;
+            }
+        }
+
         await _unitOfWork.CheckIns.UpdateStatusForMissedDeadlinesAsync();
+        await _unitOfWork.SaveChangesAsync();
+
+        return updatedCount;
     }
 
     public async Task<(int CurrentStreak, int LongestStreak)> GetStreaksAsync(int contractId, int userId)

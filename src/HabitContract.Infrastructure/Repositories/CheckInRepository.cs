@@ -165,23 +165,47 @@ public class CheckInRepository : Repository<CheckIn, int>, ICheckInRepository
         var now = DateTime.UtcNow;
         var pendingCheckIns = await GetPendingCheckInsAsync();
 
+        var checkInsByUserContract = new Dictionary<(int ContractId, int UserId), List<CheckIn>>();
+
         foreach (var checkIn in pendingCheckIns)
         {
             var contract = checkIn.Contract;
             var timeZone = TimeZoneInfo.FindSystemTimeZoneById(contract.TimeZone);
-            var checkInLocalTime = TimeZoneInfo.ConvertTimeFromUtc(checkIn.CheckInTime, timeZone);
-            var deadlineLocalTime = checkIn.CheckInDate.Date.Add(contract.CheckInDeadline);
+            var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(now, timeZone);
+            var makeUpDeadline = checkIn.CheckInDate.Date.AddDays(contract.MakeUpDeadlineDays);
 
-            if (checkInLocalTime > deadlineLocalTime)
+            if (nowLocal.Date > makeUpDeadline)
             {
                 checkIn.Status = CheckInStatus.Missed;
                 checkIn.StatusChangedAt = now;
+                checkIn.ConsecutiveDays = 0;
+
+                var key = (checkIn.ContractId, checkIn.UserId);
+                if (!checkInsByUserContract.ContainsKey(key))
+                {
+                    checkInsByUserContract[key] = new List<CheckIn>();
+                }
+                checkInsByUserContract[key].Add(checkIn);
             }
-            else
+        }
+
+        foreach (var group in checkInsByUserContract)
+        {
+            var (contractId, userId) = group.Key;
+            var missedCheckIns = group.Value.OrderBy(ci => ci.CheckInDate).ToList();
+            var allCheckIns = await GetByContractAndUserIdAsync(contractId, userId);
+
+            foreach (var missedCheckIn in missedCheckIns)
             {
-                checkIn.Status = CheckInStatus.Normal;
-                checkIn.StatusChangedAt = now;
-                checkIn.ConsecutiveDays = await GetConsecutiveDaysAsync(checkIn.ContractId, checkIn.UserId, checkIn.CheckInDate);
+                var subsequentCheckIns = allCheckIns
+                    .Where(ci => ci.CheckInDate > missedCheckIn.CheckInDate && ci.Status != CheckInStatus.Missed)
+                    .OrderBy(ci => ci.CheckInDate)
+                    .ToList();
+
+                foreach (var checkIn in subsequentCheckIns)
+                {
+                    checkIn.ConsecutiveDays = await GetConsecutiveDaysAsync(contractId, userId, checkIn.CheckInDate);
+                }
             }
         }
 

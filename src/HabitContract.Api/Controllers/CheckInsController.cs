@@ -64,4 +64,12 @@ public class CheckInsController : ApiControllerBase
         var result = await _checkInService.GetMyCheckInsAsync(GetCurrentUserId(), parameters);
         return Success(result);
     }
+
+    [HttpPost("update-expired-status")]
+    [Authorize]
+    public async Task<IActionResult> UpdateExpiredStatus()
+    {
+        var updatedCount = await _checkInService.UpdateMissedCheckInStatusesAsync();
+        return Success(new { UpdatedCount = updatedCount }, "逾期状态更新完成");
+    }
 }
