@@ -66,6 +66,7 @@ public class ContractViolationService : IContractViolationService
 
         var violation = _mapper.Map<ContractViolation>(dto);
         violation.UserId = dto.UserId;
+        violation.ViolationType = ViolationTypeMigrator.Normalize(dto.ViolationType);
         violation.IsConfirmed = false;
         violation.CreatedAt = DateTime.UtcNow;
 
@@ -97,7 +98,7 @@ public class ContractViolationService : IContractViolationService
         bool wasSevere = violation.IsSevere;
 
         if (dto.ViolationType.HasValue)
-            violation.ViolationType = dto.ViolationType.Value;
+            violation.ViolationType = ViolationTypeMigrator.Normalize(dto.ViolationType.Value);
 
         if (dto.IsSevere.HasValue)
             violation.IsSevere = dto.IsSevere.Value;
@@ -160,10 +161,11 @@ public class ContractViolationService : IContractViolationService
             return;
         }
 
+        var normalizedType = ViolationTypeMigrator.Normalize(violation.ViolationType);
         var allUsers = await _unitOfWork.Users.GetAllAsync();
         var violator = allUsers.FirstOrDefault(u => u.Id == violation.UserId);
         var violatorName = violator?.Username ?? "未知用户";
-        var violationTypeName = GetViolationTypeName(violation.ViolationType);
+        var violationTypeName = GetViolationTypeName(normalizedType);
 
         foreach (var supervisorId in supervisorIds)
         {
@@ -200,6 +202,7 @@ public class ContractViolationService : IContractViolationService
     private async Task<ContractViolationDto> MapToViolationDto(ContractViolation violation)
     {
         var dto = _mapper.Map<ContractViolationDto>(violation);
+        dto.ViolationType = ViolationTypeMigrator.Normalize(violation.ViolationType);
 
         var contract = await _unitOfWork.Contracts.GetByIdAsync(violation.ContractId);
         dto.ContractName = contract?.HabitName;

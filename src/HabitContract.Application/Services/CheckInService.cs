@@ -75,8 +75,7 @@ public class CheckInService : ICheckInService
 
         if (!validationResult.IsValid)
         {
-            var violationType = ClassifyViolation(null, validationResult.ErrorMessage);
-            await RecordViolationAndNotifyPartners(contract, userId, checkInDate, validationResult.ErrorMessage, violationType);
+            await RecordViolationAndNotifyPartners(contract, userId, checkInDate, validationResult.ErrorMessage, validationResult.ViolationType);
             throw new BusinessException(validationResult.ErrorMessage);
         }
 
@@ -96,6 +95,13 @@ public class CheckInService : ICheckInService
 
         var created = await _unitOfWork.CheckIns.AddAsync(checkIn);
         await _unitOfWork.SaveChangesAsync();
+
+        if (status == CheckInStatus.Missed)
+        {
+            await RecordViolationAndNotifyPartners(contract, userId, checkInDate,
+                $"打卡时间已超过补卡期限（截止日期：{checkInDate.AddDays(contract.MakeUpDeadlineDays):yyyy-MM-dd}），打卡状态已记为未打卡",
+                ViolationType.MissedCheckIn);
+        }
 
         await UpdateSubsequentCheckInConsecutiveDays(contract.Id, userId, checkInDate);
 
@@ -288,6 +294,7 @@ public class CheckInService : ICheckInService
         {
             result.IsValid = false;
             result.ErrorMessage = $"今日打卡次数已达上限（{currentCount}/{rule.Count}次）";
+            result.ViolationType = ViolationType.NotMetTarget;
             return result;
         }
 
@@ -311,6 +318,7 @@ public class CheckInService : ICheckInService
                 result.IsValid = false;
                 var allowedDays = string.Join("、", rule.DaysOfWeek.Select(d => GetChineseDayName(d)));
                 result.ErrorMessage = $"今天不允许打卡，仅允许在{allowedDays}打卡";
+                result.ViolationType = ViolationType.NotMetTarget;
                 return result;
             }
         }
@@ -319,6 +327,7 @@ public class CheckInService : ICheckInService
         {
             result.IsValid = false;
             result.ErrorMessage = $"本周打卡次数已达上限（{currentCount}/{rule.Count}次）";
+            result.ViolationType = ViolationType.NotMetTarget;
             return result;
         }
 
@@ -364,6 +373,7 @@ public class CheckInService : ICheckInService
 
     private async Task<bool> DetermineIfSevereAsync(int contractId, int userId, DateTime violationDate, ViolationType violationType)
     {
+        var normalizedType = ViolationTypeMigrator.Normalize(violationType);
         var allViolations = await _unitOfWork.ContractViolations.GetAllAsync();
         var recentDate = violationDate.AddDays(-7);
 
@@ -376,7 +386,7 @@ public class CheckInService : ICheckInService
             return true;
         }
 
-        if (violationType == ViolationType.MissedCheckIn)
+        if (normalizedType == ViolationType.MissedCheckIn)
         {
             var streaks = await _unitOfWork.CheckIns.GetStreaksAsync(contractId, userId);
             if (streaks.CurrentStreak >= 7)
@@ -388,23 +398,9 @@ public class CheckInService : ICheckInService
         return false;
     }
 
-    private ViolationType ClassifyViolation(CheckInStatus? checkInStatus, string reason)
-    {
-        if (checkInStatus == CheckInStatus.Missed)
-        {
-            return ViolationType.MissedCheckIn;
-        }
-
-        if (reason.Contains("频率") || reason.Contains("次数") || reason.Contains("上限") || reason.Contains("不允许"))
-        {
-            return ViolationType.NotMetTarget;
-        }
-
-        return ViolationType.Other;
-    }
-
     private async Task NotifyPartnersAsync(Contract contract, ContractViolation violation, int violatorId)
     {
+        var normalizedType = ViolationTypeMigrator.Normalize(violation.ViolationType);
         var allPartners = await _unitOfWork.ContractPartners.GetAllAsync();
         var partnerIds = allPartners
             .Where(p => p.ContractId == contract.Id && p.Status == PartnerStatus.Accepted && p.PartnerId != violatorId)
@@ -424,7 +420,7 @@ public class CheckInService : ICheckInService
         var allUsers = await _unitOfWork.Users.GetAllAsync();
         var violator = allUsers.FirstOrDefault(u => u.Id == violatorId);
         var violatorName = violator?.Username ?? "未知用户";
-        var violationTypeName = GetViolationTypeName(violation.ViolationType);
+        var violationTypeName = GetViolationTypeName(normalizedType);
 
         foreach (var partnerId in partnerIds)
         {
@@ -505,8 +501,7 @@ public class CheckInService : ICheckInService
                         if (contract != null)
                         {
                             var reason = $"规则变更后校验失败：{validationResult.ErrorMessage}";
-                            var violationType = ClassifyViolation(null, reason);
-                            await RecordViolationAndNotifyPartners(contract, userId, periodCheckIns[i].CheckInDate, reason, violationType);
+                            await RecordViolationAndNotifyPartners(contract, userId, periodCheckIns[i].CheckInDate, reason, ViolationType.NotMetTarget);
                         }
                         break;
                     }

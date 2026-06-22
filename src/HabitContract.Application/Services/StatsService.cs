@@ -232,10 +232,12 @@ public class StatsService : IStatsService
         var total = violations.Count;
         var result = new List<ViolationTypeStatsDto>();
 
-        foreach (ViolationType type in Enum.GetValues(typeof(ViolationType)))
+        var activeTypes = new[] { ViolationType.MissedCheckIn, ViolationType.NotMetTarget, ViolationType.Other };
+
+        foreach (var type in activeTypes)
         {
-            var count = violations.Count(v => v.ViolationType == type);
-            var severeCount = violations.Count(v => v.ViolationType == type && v.IsSevere);
+            var count = violations.Count(v => ViolationTypeMigrator.Normalize(v.ViolationType) == type);
+            var severeCount = violations.Count(v => ViolationTypeMigrator.Normalize(v.ViolationType) == type && v.IsSevere);
             var percentage = total > 0 ? Math.Round((double)count / total * 100, 2) : 0;
 
             result.Add(new ViolationTypeStatsDto
@@ -256,7 +258,7 @@ public class StatsService : IStatsService
         List<Domain.Entities.CheckIn> checkIns)
     {
         var suggestions = new List<ImprovementSuggestionDto>();
-        var typeGroups = violations.GroupBy(v => v.ViolationType).ToList();
+        var typeGroups = violations.GroupBy(v => ViolationTypeMigrator.Normalize(v.ViolationType)).ToList();
 
         foreach (var group in typeGroups.OrderByDescending(g => g.Count()))
         {

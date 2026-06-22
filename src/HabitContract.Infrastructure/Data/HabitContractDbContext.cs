@@ -144,7 +144,7 @@ public class HabitContractDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(cv => cv.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
-            entity.Property(cv => cv.ViolationType).HasDefaultValue(ViolationType.Other);
+            entity.Property(cv => cv.ViolationType).HasDefaultValue(ViolationType.Other); // 3
             entity.Property(cv => cv.IsSevere).HasDefaultValue(false);
             entity.Property(cv => cv.Reason).IsRequired().HasMaxLength(500);
             entity.Property(cv => cv.IsConfirmed).HasDefaultValue(false);

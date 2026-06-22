@@ -17,4 +17,5 @@ public class FrequencyValidationResult
     public int CurrentCount { get; set; }
     public int RequiredCount { get; set; }
     public string Period { get; set; } = string.Empty;
+    public ViolationType ViolationType { get; set; } = ViolationType.Other;
 }
