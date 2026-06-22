@@ -12,4 +12,6 @@ public interface ICheckInService
     Task DeleteCheckInAsync(int userId, int id);
     Task<PagedResultDto<CheckInListDto>> GetMyCheckInsAsync(int userId, QueryParameters parameters);
     Task ReValidateRecentCheckInsAsync(int contractId, FrequencyRule newRule);
+    Task UpdateMissedCheckInStatusesAsync();
+    Task<(int CurrentStreak, int LongestStreak)> GetStreaksAsync(int contractId, int userId);
 }

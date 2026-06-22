@@ -14,7 +14,8 @@ public class UnitOfWork : IUnitOfWork
     private IRepository<User, int>? _users;
     private IRepository<Contract, int>? _contracts;
     private IRepository<ContractPartner, int>? _contractPartners;
-    private IRepository<CheckIn, int>? _checkIns;
+    private ICheckInRepository? _checkIns;
+    private IMakeUpRequestRepository? _makeUpRequests;
     private IRepository<ContractViolation, int>? _contractViolations;
     private IRoleChangeAuditRepository? _roleChangeAudits;
     private IHabitTemplateCategoryRepository? _habitTemplateCategories;
@@ -32,7 +33,8 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<User, int> Users => _users ??= new UserRepository(_context);
     public IRepository<Contract, int> Contracts => _contracts ??= new ContractRepository(_context);
     public IRepository<ContractPartner, int> ContractPartners => _contractPartners ??= new ContractPartnerRepository(_context);
-    public IRepository<CheckIn, int> CheckIns => _checkIns ??= new CheckInRepository(_context);
+    public ICheckInRepository CheckIns => _checkIns ??= new CheckInRepository(_context);
+    public IMakeUpRequestRepository MakeUpRequests => _makeUpRequests ??= new MakeUpRequestRepository(_context);
     public IRepository<ContractViolation, int> ContractViolations => _contractViolations ??= new ContractViolationRepository(_context);
     public IRoleChangeAuditRepository RoleChangeAudits => _roleChangeAudits ??= new RoleChangeAuditRepository(_context);
     public IHabitTemplateCategoryRepository HabitTemplateCategories => _habitTemplateCategories ??= new HabitTemplateCategoryRepository(_context);

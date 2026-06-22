@@ -23,21 +23,13 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.OwnerName, opt => opt.Ignore())
             .ForMember(dest => dest.PartnerCount, opt => opt.Ignore())
             .ForMember(dest => dest.CheckInCount, opt => opt.Ignore())
-            .ForMember(dest => dest.ViolationCount, opt => opt.Ignore());
+            .ForMember(dest => dest.ViolationCount, opt => opt.Ignore())
+            .ForMember(dest => dest.CurrentStreak, opt => opt.Ignore())
+            .ForMember(dest => dest.LongestStreak, opt => opt.Ignore());
 
         CreateMap<Contract, ContractListDto>()
-            .ForMember(dest => dest.OwnerName, opt => opt.Ignore());
-
-        CreateMap<ContractCreateDto, Contract>()
-            .ForMember(dest => dest.Id, opt => opt.Ignore())
-            .ForMember(dest => dest.OwnerId, opt => opt.Ignore())
-            .ForMember(dest => dest.Status, opt => opt.Ignore())
-            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
-            .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
-            .ForMember(dest => dest.Owner, opt => opt.Ignore())
-            .ForMember(dest => dest.Partners, opt => opt.Ignore())
-            .ForMember(dest => dest.CheckIns, opt => opt.Ignore())
-            .ForMember(dest => dest.Violations, opt => opt.Ignore());
+            .ForMember(dest => dest.OwnerName, opt => opt.Ignore())
+            .ForMember(dest => dest.CurrentStreak, opt => opt.Ignore());
 
         // 监督伙伴映射
         CreateMap<ContractPartner, ContractPartnerDto>()
@@ -65,10 +57,52 @@ public class MappingProfile : Profile
         CreateMap<CheckInCreateDto, CheckIn>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
             .ForMember(dest => dest.UserId, opt => opt.Ignore())
+            .ForMember(dest => dest.Status, opt => opt.Ignore())
+            .ForMember(dest => dest.StatusChangedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.MakeUpRequestId, opt => opt.Ignore())
+            .ForMember(dest => dest.ConsecutiveDays, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
             .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
             .ForMember(dest => dest.Contract, opt => opt.Ignore())
-            .ForMember(dest => dest.User, opt => opt.Ignore());
+            .ForMember(dest => dest.User, opt => opt.Ignore())
+            .ForMember(dest => dest.MakeUpRequest, opt => opt.Ignore());
+
+        // 契约映射更新
+        CreateMap<ContractCreateDto, Contract>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.OwnerId, opt => opt.Ignore())
+            .ForMember(dest => dest.Status, opt => opt.Ignore())
+            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.Owner, opt => opt.Ignore())
+            .ForMember(dest => dest.Partners, opt => opt.Ignore())
+            .ForMember(dest => dest.CheckIns, opt => opt.Ignore())
+            .ForMember(dest => dest.Violations, opt => opt.Ignore())
+            .ForMember(dest => dest.MakeUpRequests, opt => opt.Ignore());
+
+        // 补卡申请映射
+        CreateMap<MakeUpRequest, MakeUpRequestDto>()
+            .ForMember(dest => dest.ContractName, opt => opt.Ignore())
+            .ForMember(dest => dest.Username, opt => opt.Ignore())
+            .ForMember(dest => dest.ReviewerName, opt => opt.Ignore());
+
+        CreateMap<MakeUpRequest, MakeUpRequestListDto>()
+            .ForMember(dest => dest.ContractName, opt => opt.Ignore())
+            .ForMember(dest => dest.Username, opt => opt.Ignore());
+
+        CreateMap<MakeUpRequestCreateDto, MakeUpRequest>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.UserId, opt => opt.Ignore())
+            .ForMember(dest => dest.Status, opt => opt.Ignore())
+            .ForMember(dest => dest.ReviewedBy, opt => opt.Ignore())
+            .ForMember(dest => dest.ReviewedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.RejectionReason, opt => opt.Ignore())
+            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.Contract, opt => opt.Ignore())
+            .ForMember(dest => dest.User, opt => opt.Ignore())
+            .ForMember(dest => dest.Reviewer, opt => opt.Ignore())
+            .ForMember(dest => dest.CheckIns, opt => opt.Ignore());
 
         // 违约映射
         CreateMap<ContractViolation, ContractViolationDto>()

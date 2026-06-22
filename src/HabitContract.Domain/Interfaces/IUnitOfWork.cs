@@ -7,7 +7,8 @@ public interface IUnitOfWork : IDisposable
     IRepository<User, int> Users { get; }
     IRepository<Contract, int> Contracts { get; }
     IRepository<ContractPartner, int> ContractPartners { get; }
-    IRepository<CheckIn, int> CheckIns { get; }
+    ICheckInRepository CheckIns { get; }
+    IMakeUpRequestRepository MakeUpRequests { get; }
     IRepository<ContractViolation, int> ContractViolations { get; }
     IRoleChangeAuditRepository RoleChangeAudits { get; }
     IHabitTemplateCategoryRepository HabitTemplateCategories { get; }
@@ -17,4 +18,7 @@ public interface IUnitOfWork : IDisposable
     IReminderRecordRepository ReminderRecords { get; }
     IReminderTemplateRepository ReminderTemplates { get; }
     Task<int> SaveChangesAsync();
+    Task BeginTransactionAsync();
+    Task CommitTransactionAsync();
+    Task RollbackTransactionAsync();
 }

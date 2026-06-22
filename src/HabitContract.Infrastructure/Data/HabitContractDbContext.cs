@@ -23,6 +23,7 @@ public class HabitContractDbContext : DbContext
     public DbSet<ReminderRecord> ReminderRecords { get; set; }
     public DbSet<ReminderTemplate> ReminderTemplates { get; set; }
     public DbSet<RoleChangeAudit> RoleChangeAudits { get; set; }
+    public DbSet<MakeUpRequest> MakeUpRequests { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -54,6 +55,9 @@ public class HabitContractDbContext : DbContext
             entity.Property(c => c.Frequency).IsRequired().HasMaxLength(50);
             entity.Property(c => c.PenaltyDescription).HasMaxLength(500);
             entity.Property(c => c.Status).HasDefaultValue(ContractStatus.Active);
+            entity.Property(c => c.CheckInDeadline).HasDefaultValue(new TimeSpan(23, 59, 59));
+            entity.Property(c => c.TimeZone).HasDefaultValue("Asia/Shanghai").HasMaxLength(50);
+            entity.Property(c => c.MakeUpDeadlineDays).HasDefaultValue(7);
             entity.HasIndex(c => c.OwnerId);
             entity.HasIndex(c => c.TemplateId);
             entity.HasIndex(c => c.Status);
@@ -87,12 +91,46 @@ public class HabitContractDbContext : DbContext
                 .WithMany(u => u.CheckIns)
                 .HasForeignKey(ci => ci.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(ci => ci.MakeUpRequest)
+                .WithMany(m => m.CheckIns)
+                .HasForeignKey(ci => ci.MakeUpRequestId)
+                .OnDelete(DeleteBehavior.SetNull);
             entity.Property(ci => ci.ProofText).HasMaxLength(1000);
             entity.Property(ci => ci.ProofPhoto).HasMaxLength(500);
+            entity.Property(ci => ci.Status).HasDefaultValue(CheckInStatus.Pending);
+            entity.Property(ci => ci.ConsecutiveDays).HasDefaultValue(0);
             entity.HasIndex(ci => ci.ContractId);
             entity.HasIndex(ci => ci.UserId);
             entity.HasIndex(ci => ci.CheckInDate);
-            entity.HasIndex(ci => new { ci.ContractId, ci.CheckInDate }).IsUnique();
+            entity.HasIndex(ci => ci.Status);
+            entity.HasIndex(ci => new { ci.ContractId, ci.UserId, ci.CheckInDate }).IsUnique();
+        });
+
+        // 补卡申请表配置
+        modelBuilder.Entity<MakeUpRequest>(entity =>
+        {
+            entity.HasOne(m => m.Contract)
+                .WithMany(c => c.MakeUpRequests)
+                .HasForeignKey(m => m.ContractId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(m => m.User)
+                .WithMany()
+                .HasForeignKey(m => m.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(m => m.Reviewer)
+                .WithMany()
+                .HasForeignKey(m => m.ReviewedBy)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.Property(m => m.Reason).IsRequired().HasMaxLength(500);
+            entity.Property(m => m.ProofText).HasMaxLength(1000);
+            entity.Property(m => m.ProofPhoto).HasMaxLength(500);
+            entity.Property(m => m.RejectionReason).HasMaxLength(500);
+            entity.Property(m => m.Status).HasDefaultValue(MakeUpRequestStatus.Pending);
+            entity.HasIndex(m => m.ContractId);
+            entity.HasIndex(m => m.UserId);
+            entity.HasIndex(m => m.Status);
+            entity.HasIndex(m => m.CheckInDate);
+            entity.HasIndex(m => new { m.ContractId, m.UserId, m.CheckInDate }).IsUnique();
         });
 
         // 违约记录表配置：记录契约违约事件

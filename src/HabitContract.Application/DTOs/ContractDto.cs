@@ -21,6 +21,13 @@ public class ContractCreateDto
 
     [StringLength(500, ErrorMessage = "惩罚描述最多500个字符")]
     public string? PenaltyDescription { get; set; }
+
+    public TimeSpan CheckInDeadline { get; set; } = new TimeSpan(23, 59, 59);
+
+    [StringLength(50, ErrorMessage = "时区最多50个字符")]
+    public string TimeZone { get; set; } = "Asia/Shanghai";
+
+    public int MakeUpDeadlineDays { get; set; } = 7;
 }
 
 public class ContractUpdateDto
@@ -37,6 +44,13 @@ public class ContractUpdateDto
 
     [StringLength(500, ErrorMessage = "惩罚描述最多500个字符")]
     public string? PenaltyDescription { get; set; }
+
+    public TimeSpan? CheckInDeadline { get; set; }
+
+    [StringLength(50, ErrorMessage = "时区最多50个字符")]
+    public string? TimeZone { get; set; }
+
+    public int? MakeUpDeadlineDays { get; set; }
 }
 
 public class ContractStatusDto
@@ -56,11 +70,16 @@ public class ContractDto
     public DateTime EndDate { get; set; }
     public string? PenaltyDescription { get; set; }
     public ContractStatus Status { get; set; }
+    public TimeSpan CheckInDeadline { get; set; }
+    public string TimeZone { get; set; } = string.Empty;
+    public int MakeUpDeadlineDays { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public int PartnerCount { get; set; }
     public int CheckInCount { get; set; }
     public int ViolationCount { get; set; }
+    public int CurrentStreak { get; set; }
+    public int LongestStreak { get; set; }
 }
 
 public class ContractListDto
@@ -73,5 +92,6 @@ public class ContractListDto
     public ContractStatus Status { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
+    public int CurrentStreak { get; set; }
     public DateTime CreatedAt { get; set; }
 }

@@ -30,4 +30,20 @@ public class StatsController : ApiControllerBase
         var result = await _statsService.GetTrendAsync(startDate, endDate);
         return Success(result);
     }
+
+    [HttpGet("contract/{contractId}")]
+    [Authorize]
+    public async Task<IActionResult> GetContractStats(int contractId)
+    {
+        var result = await _statsService.GetContractStatsAsync(contractId, GetCurrentUserId());
+        return Success(result);
+    }
+
+    [HttpGet("user")]
+    [Authorize]
+    public async Task<IActionResult> GetUserStats()
+    {
+        var result = await _statsService.GetUserStatsAsync(GetCurrentUserId());
+        return Success(result);
+    }
 }

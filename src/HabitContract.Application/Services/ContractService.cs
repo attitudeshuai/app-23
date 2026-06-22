@@ -112,6 +112,15 @@ public class ContractService : IContractService
         if (dto.PenaltyDescription != null)
             contract.PenaltyDescription = dto.PenaltyDescription;
 
+        if (dto.CheckInDeadline.HasValue)
+            contract.CheckInDeadline = dto.CheckInDeadline.Value;
+
+        if (!string.IsNullOrEmpty(dto.TimeZone))
+            contract.TimeZone = dto.TimeZone;
+
+        if (dto.MakeUpDeadlineDays.HasValue)
+            contract.MakeUpDeadlineDays = dto.MakeUpDeadlineDays.Value;
+
         contract.UpdatedAt = DateTime.UtcNow;
         await _unitOfWork.Contracts.UpdateAsync(contract);
         await _unitOfWork.SaveChangesAsync();
@@ -259,6 +268,10 @@ public class ContractService : IContractService
         var allViolations = await _unitOfWork.ContractViolations.GetAllAsync();
         dto.ViolationCount = allViolations.Count(v => v.ContractId == contract.Id);
 
+        var streaks = await _checkInService.GetStreaksAsync(contract.Id, contract.OwnerId);
+        dto.CurrentStreak = streaks.CurrentStreak;
+        dto.LongestStreak = streaks.LongestStreak;
+
         return dto;
     }
 
@@ -268,6 +281,9 @@ public class ContractService : IContractService
 
         var owner = await _unitOfWork.Users.GetByIdAsync(contract.OwnerId);
         dto.OwnerName = owner?.Username;
+
+        var streaks = await _checkInService.GetStreaksAsync(contract.Id, contract.OwnerId);
+        dto.CurrentStreak = streaks.CurrentStreak;
 
         return dto;
     }

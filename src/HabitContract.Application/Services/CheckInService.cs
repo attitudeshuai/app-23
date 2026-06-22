@@ -68,6 +68,8 @@ public class CheckInService : ICheckInService
 
         var frequencyRule = await _frequencyCache.GetOrCreateAsync(contract.Id, contract.Frequency);
         var checkInDate = dto.CheckInDate.Date;
+        var checkInTime = dto.CheckInTime == default ? DateTime.UtcNow : dto.CheckInTime;
+
         var currentPeriodCount = GetCurrentPeriodCheckInCount(contract.Id, userId, frequencyRule, checkInDate);
         var validationResult = ValidateCheckInAgainstRule(frequencyRule, checkInDate, currentPeriodCount);
 
@@ -80,11 +82,65 @@ public class CheckInService : ICheckInService
         var checkIn = _mapper.Map<CheckIn>(dto);
         checkIn.UserId = userId;
         checkIn.CheckInDate = checkInDate;
+        checkIn.CheckInTime = checkInTime;
+
+        var status = DetermineCheckInStatus(contract, checkInDate, checkInTime);
+        checkIn.Status = status;
+        checkIn.StatusChangedAt = DateTime.UtcNow;
+
+        if (status != CheckInStatus.Missed)
+        {
+            checkIn.ConsecutiveDays = await _unitOfWork.CheckIns.GetConsecutiveDaysAsync(contract.Id, userId, checkInDate);
+        }
 
         var created = await _unitOfWork.CheckIns.AddAsync(checkIn);
         await _unitOfWork.SaveChangesAsync();
 
+        await UpdateSubsequentCheckInConsecutiveDays(contract.Id, userId, checkInDate);
+
         return await MapToCheckInDto(created);
+    }
+
+    private CheckInStatus DetermineCheckInStatus(Contract contract, DateTime checkInDate, DateTime checkInTime)
+    {
+        var timeZone = TimeZoneInfo.FindSystemTimeZoneById(contract.TimeZone);
+        var checkInLocalTime = TimeZoneInfo.ConvertTimeFromUtc(checkInTime, timeZone);
+        var deadlineLocalTime = checkInDate.Date.Add(contract.CheckInDeadline);
+
+        if (checkInLocalTime <= deadlineLocalTime)
+        {
+            return CheckInStatus.Normal;
+        }
+
+        var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZone);
+        var makeUpDeadline = checkInDate.Date.AddDays(contract.MakeUpDeadlineDays);
+
+        if (nowLocal.Date <= makeUpDeadline)
+        {
+            return CheckInStatus.Pending;
+        }
+
+        return CheckInStatus.Missed;
+    }
+
+    private async Task UpdateSubsequentCheckInConsecutiveDays(int contractId, int userId, DateTime fromDate)
+    {
+        var allCheckIns = await _unitOfWork.CheckIns.GetByContractAndUserIdAsync(contractId, userId);
+        var subsequentCheckIns = allCheckIns?
+            .Where(ci => ci.CheckInDate > fromDate.Date && ci.Status != CheckInStatus.Missed)
+            .OrderBy(ci => ci.CheckInDate)
+            .ToList() ?? new List<CheckIn>();
+
+        foreach (var checkIn in subsequentCheckIns)
+        {
+            checkIn.ConsecutiveDays = await _unitOfWork.CheckIns.GetConsecutiveDaysAsync(contractId, userId, checkIn.CheckInDate);
+            await _unitOfWork.CheckIns.UpdateAsync(checkIn);
+        }
+
+        if (subsequentCheckIns.Any())
+        {
+            await _unitOfWork.SaveChangesAsync();
+        }
     }
 
     public async Task<CheckInDto> UpdateCheckInAsync(int userId, int id, CheckInUpdateDto dto)
@@ -393,6 +449,16 @@ public class CheckInService : ICheckInService
                 }
             }
         }
+    }
+
+    public async Task UpdateMissedCheckInStatusesAsync()
+    {
+        await _unitOfWork.CheckIns.UpdateStatusForMissedDeadlinesAsync();
+    }
+
+    public async Task<(int CurrentStreak, int LongestStreak)> GetStreaksAsync(int contractId, int userId)
+    {
+        return await _unitOfWork.CheckIns.GetStreaksAsync(contractId, userId);
     }
 
     private async Task<CheckInDto> MapToCheckInDto(CheckIn checkIn)

@@ -56,7 +56,7 @@ public class CheckInServiceTests
 
     private void SetupRepositories()
     {
-        var mockCheckInRepo = new Mock<IRepository<CheckIn, int>>();
+        var mockCheckInRepo = new Mock<ICheckInRepository>();
         mockCheckInRepo.Setup(r => r.GetAllAsync())
             .ReturnsAsync(_checkIns.AsEnumerable());
         mockCheckInRepo.Setup(r => r.AddAsync(It.IsAny<CheckIn>()))
@@ -67,6 +67,10 @@ public class CheckInServiceTests
                 _checkIns.Add(c);
                 return c;
             });
+        mockCheckInRepo.Setup(r => r.GetConsecutiveDaysAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<DateTime>()))
+            .ReturnsAsync(1);
+        mockCheckInRepo.Setup(r => r.GetByContractAndUserIdAsync(It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync((int cid, int uid) => _checkIns.Where(ci => ci.ContractId == cid && ci.UserId == uid).ToList());
         _mockUnitOfWork.Setup(u => u.CheckIns).Returns(mockCheckInRepo.Object);
 
         var mockContractRepo = new Mock<IRepository<Contract, int>>();

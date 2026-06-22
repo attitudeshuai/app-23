@@ -50,6 +50,7 @@ public class PermissionService : IPermissionService
             ContractOperation.DeleteCheckIn => true,
             ContractOperation.InitiateMakeUpReview => CanInitiateMakeUpReview(partner.Role),
             ContractOperation.ApproveMakeUp => CanApproveMakeUp(partner.Role),
+            ContractOperation.ReviewCheckIn => CanApproveMakeUp(partner.Role),
             ContractOperation.ViewViolations => CanViewViolations(partner.Role),
             ContractOperation.ViewStats => CanViewStats(partner.Role),
             ContractOperation.EditContract => false,

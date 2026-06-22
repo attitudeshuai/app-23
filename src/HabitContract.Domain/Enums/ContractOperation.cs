@@ -15,5 +15,6 @@ public enum ContractOperation
     ViewViolations = 10,
     ManagePartners = 11,
     ChangePartnerRole = 12,
-    ViewStats = 13
+    ViewStats = 13,
+    ReviewCheckIn = 14
 }
